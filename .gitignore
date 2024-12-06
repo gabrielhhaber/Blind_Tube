@@ -1,8 +1,11 @@
-blind_tube/dist/
+build/
+build_cythonize/
 blind_tube/build/
+blind_tube/dist/
 blind_tube/token.json
 blind_tube/credentials.json
 blind_tube/search_history.txt
+blind_tube/ffmpeg.exe
 blind_tube/data/
 __pycache/
 blind_tube/__pycache/
