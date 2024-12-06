@@ -2033,7 +2033,7 @@ class MainWindow(wx.Dialog):
 	def __init__(self, parent, title, instanceData=None):
 		super().__init__(parent, title=title, style=wx.DIALOG_NO_PARENT)
 		self.appName="Blind_Tube"+wx.GetUserId()
-		self.currentVersion="21/11/2024"
+		self.currentVersion="06/12/2024"
 		self.instanceChecker=wx.SingleInstanceChecker(self.appName)
 		self.instanceData=instanceData
 		if self.instanceData:
