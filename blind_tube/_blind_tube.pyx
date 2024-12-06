@@ -1958,7 +1958,7 @@ def login():
 			os.remove("token.json")
 
 		else:
-			tokensKey=b"LpV6PLj8zQVa0GMNu_i8GQA346Ku4zkzPZK1EqrLpQw="
+			tokensKey=b"TOKEN_KEY_HERE"
 			encrypFile=open("token.json", "rb")
 			tokenLines=[]
 			for line in encrypFile:
