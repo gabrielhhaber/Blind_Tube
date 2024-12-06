@@ -1,0 +1,380 @@
+Novidades das atualizações do Blind Tube
+
+Versão de 21/11/2024:
+O site da Blind Center está prestes a passar por um processo de reestruturação. Dessa forma, o 
+objetivo principal desta atualização é corrigir o link de verificação e download das novas 
+atualizações, já que, após pouco tempo, as versões do Blind Tube anteriores a esta deixarão de 
+se atualizar automaticamente.
+Além disso, também foi corrigido um problema em que quando, por algum motivo, o Blind 
+Tube não conseguia obter o arquivo de atualização do servidor, era mostrado um erro 
+relacionado ao JSON.
+Atualizado novamente o componente Yt-dlp.
+Nota importante: em alguns meses, o suporte ao Windows 7 no Blind Tube pode ser 
+totalmente descontinuado. Isso ocorre porque, recentemente, o Yt-dlp descontinuou o suporte 
+para versões anteriores ao Windows 10. Neste caso, caso você ainda esteja usando o Windows 
+7 e queira continuar usando o Blind Tube, recomendamos a troca para outro sistema 
+operacional.
+
+Versão de 09/10/2024:
+Agora, o Blind Tube Possui um sistema experimental de transcrição integrado.
+Você pode, em qualquer vídeo de sua escolha, procurar a transcrição em texto das palavras 
+ditas naquele vídeo, semelhante às legendas oficiais do YouTube.
+Para isso, quando você estiver no player de vídeo, basta pressionar as teclas alt+t, e a 
+transcrição será carregada.
+Se nenhuma transcrição for encontrada para o idioma definido, o programa pode tentar 
+traduzir a transcrição para você.
+Neste caso, será exibida uma caixa de diálogo, em que você deve clicar em sim para tentar 
+traduzir a transcrição.
+O idioma padrão para a busca de transcrições no programa é português, mas você pode alterá-
+lo nas configurações, na opção de atalho alt+c dentro desse diálogo.
+Você também pode alterar o idioma da transcrição apenas para um vídeo específico. Para isso, 
+dentro do player de vídeo, pressione as teclas alt+ç e selecione o idioma no menu 
+correspondente.
+Você pode usar as letras dentro do menu para navegar entre idiomas rapidamente.
+Você também pode alterar o idioma padrão das transcrições para todos os vídeos de um canal 
+específico.
+Para isso, entre no canal desejado e acesse as configurações do canal pressionando as teclas 
+alt+n.
+Depois, entre na opção do idioma pressionando as teclas alt+c.
+No futuro, essa funcionalidade de transcrição deve ser aprimorada para fornecer muitos outros 
+recursos, incluindo a passagem automática da transcrição conforme o vídeo é reproduzido e 
+uma função de leitura automática, que permitirá ler automaticamente a transcrição no 
+formato de legendas.
+Atualmente, há um problema com esta função em que as linhas da transcrição são muito 
+curtas. Isso pode tornar a leitura com as setas mais cansativa, mas lembre-se de que você 
+também pode ler continuamente através de atalhos como NVDA+seta para baixo ou NVDA+a. 
+Esta função também fornece a vantagem adicional de não mostrar os segundos de cada fala 
+como o YouTube original, o que facilita muito a leitura.
+Atualizado novamente o componente Yt-dlp para a versão de 07/10. Os problemas envolvendo 
+o Yt-dlp e o carregamento de vídeos foram resolvidos por enquanto, mas têm sido recorrentes, 
+e tem-se buscado soluções para evitar problemas no programa quando mudanças internas no 
+YouTube ocorrem, mas, até o momento, não foi encontrada uma solução oficial ou definitiva 
+para esse tipo de problema. Dessa forma, enquanto atualizações para esse componente não 
+forem lançadas, o programa pode passar por problemas de instabilidade.
+Corrigido um problema em que, ao desativar as notificações de um canal que estivesse entre 
+os primeiros da lista de inscrições, o programa não conseguia obter as notificações dos outros 
+canais corretamente, o que poderia levar também a travamentos no computador e alto uso de 
+CPU.
+Agora, o número máximo padrão de canais notificados pelo programa aumentou de 25 para 
+50.
+Além disso, agora este número também é personalizável, o que significa que você pode definir 
+quantos canais serão monitorados em relação a novas notificações.
+Note que, quanto maior o número de canais monitorados, mais lento será o carregamento das 
+notificações e mais atrasados ficarão os avisos de novos vídeos. O valor padrão é notificar 
+apenas dos 50 primeiros canais da sua lista de inscrições, que, normalmente, são definidos 
+automaticamente pelo YouTube de acordo com os canais que você mais assiste.
+Caso você não esteja recebendo notificações de alguns canais, provavelmente isso significa que 
+o canal está abaixo do limite definido na sua lista de inscrições e, assim, o programa está 
+notificando apenas dos canais mais importantes.
+Caso você queira passar um determinado canal para o topo da sua lista de inscrições, basta 
+cancelar a inscrição e se inscrever novamente. No futuro, será implementada uma 
+funcionalidade de reordenar a lista de inscrições, facilitando esse processo.
+Para alterar o número máximo de canais notificados, entre nas configurações e pressione alt+r 
+para chegar ao campo de edição correspondente.
+Agora, a espera de 5 segundos após as notificações de novos vídeos foi removida. Isso significa 
+que o carregamento das notificações deve ser significativamente mais rápido.
+Note que isso só funciona no modo de notificações padrão, ou seja, no modo sons de 
+notificação, mas não no modo notificação do sistema. Dessa forma, caso você ainda esteja 
+utilizando o modo antigo, é ainda mais indicado trocar para o modo mais recomendado, já que 
+o modo notificação do sistema não recebe mais novas atualizações ou suporte amplo. Nesse 
+modo, as notificações são enviadas e gerenciadas pelo próprio Windows, o que significa que 
+esse tempo de espera não pode ser removido.
+Corrigido um problema em que, quando havia vídeos programados na pesquisa ou nas 
+playlists, ocorria um erro ao carregar os resultados.
+Um bug recorrente, em que ocorria um erro no programa ao tentar fechar um vídeo que já não 
+era reproduzido há muito tempo, foi corrigido.
+
+Versão de 06/08/2024:
+Atualizado novamente o YouTube-dlp, pois o programa não estava funcionando novamente 
+devido a mudanças no YouTube.
+
+Versão de 03/08/2024:
+Corrigido um problema com o histórico de pesquisa em que, ao pesquisar por algum tópico em 
+uma instância do programa e depois sair de um vídeo em outra instância e pesquisar outro 
+tópico (sem abrir uma nova), tudo o que foi pesquisado na primeira instância era excluído do 
+histórico, causando a perda de uma parte do histórico de pesquisa.
+Atualizado novamente o YouTube-dlp para a versão oficial mais recente. Infelizmente, apesar 
+das constantes atualizações desse componente que quebram a compatibilidade com o 
+programa, um atualizador automático para esse componente não pode ser implementado no 
+caso do Blind Tube, já que o YouTube-dlp está funcionando através de uma biblioteca e não do 
+arquivo executável (.exe).
+
+Versão de 31/07/2024:
+Atualizado novamente o componente YouTube-dlp, pois uma nova atualização interna do 
+YouTube havia feito o programa parar de funcionar novamente. No momento, o componente 
+foi atualizado para uma versão de testes de forma provisória, pois a atualização oficial ainda 
+não foi lançada.
+
+Versão de 27/07/2024:
+Corrigido um problema em que, ao avançar muito um vídeo com a seta para a direita ou no 
+controle de busca (como com a tecla end), o programa travava ao tentar avançar mais que o 
+necessário.
+Agora, ao pressionar as teclas Ctrl+shift+b para abrir uma nova instância do Blind Tube, o 
+programa avisará que a instância foi aberta. Isso é útil nos casos em que o Windows não define 
+o foco para a janela automaticamente, então você saberá que a janela está aberta e poderá 
+alternar para ela com alt+tab ou uma combinação semelhante.
+Corrigido um problema em que o atalho da opção de fechar todas as instâncias na tela inicial 
+não era mais existente.
+Adicionado o atalho de abrir nova instância às dicas de uso e feitas também algumas correções 
+e modificações no texto.
+
+Versão de 26/07/2024:
+Atualizado o componente YouTube-dlp novamente para corrigir um problema em que os vídeos 
+paravam de carregar de tempos em tempos.
+Atualizada a compatibilidade com Windows 7 para que o programa funcione novamente nessa 
+versão. O suporte ao Windows 7 será mantido enquanto possível, mas é possível que, com as 
+constantes atualizações de bibliotecas e componentes, o Windows 7 não possa mais ser 
+suportado em algum momento.
+
+Versão de 09/07/2024:
+Esta atualização foi lançada principalmente como uma atualização corretiva, buscando corrigir 
+um problema crítico surgido recentemente que quebra completamente o programa, 
+impedindo-o de carregar ou baixar qualquer vídeo do YouTube. O problema foi corrigido 
+através de uma atualização do componente interno YouTube-dlp.
+As próximas atualizações lançadas após esta devem incluir novos recursos ou funcionalidades, 
+sendo uma das principais planejadas a possibilidade de ler legendas ou a transcrição dos 
+vídeos do YouTube em diferentes idiomas.
+Esta atualização também inclui uma mudança importante em relação às credenciais de acesso 
+ao programa. A partir de agora, o programa não está mais incluindo uma credencial padrão 
+que é concedida a todos os novos usuários. Em vez disso, todos os usuários agora devem 
+solicitar uma credencial por e-mail ou seguir o novo tutorial de criação de credencial, 
+disponível na pasta do programa. Essa mudança foi necessária porque, com o aumento de 
+usuários, a credencial padrão acabou passando por problemas de bloqueio e falta de cota 
+muito frequentemente, o que levava novos usuários a não conseguirem acessar o programa.
+Agora, caso haja atualizações muito grandes que não possam ser instaladas pelo atualizador 
+automático, o Blind Tube orientará o usuário a baixar a nova versão diretamente do site oficial. 
+Isso pode ocorrer, por exemplo, em atualizações que envolvem mudanças de versão de algum 
+componente ou da linguagem de programação.
+Aplicada uma correção temporária de teste para um problema em que, em canais que tivessem 
+vídeos programados que ainda não estão disponíveis para assistir, o programa mostraria um 
+erro ao tentar carregar o canal. Com essa correção, o programa ignorará os vídeos 
+programados e não os mostrará. Nas estreias, o comportamento ainda permanece o mesmo, 
+com os vídeos aparecendo na lista, mas não sendo possível carregá-los já que ainda não foram 
+totalmente finalizados.
+
+Versão de 02/02/2024:
+Corrigido um problema em que, nas respostas de comentários, os identificadores não eram 
+encurtados mesmo com essa opção ativada nas configurações.
+Corrigido um problema em que, em alguns casos, ocorria um erro ao fechar o player de vídeo.
+
+Versão de 01/02/2024:
+Corrigido um problema em que, ao acessar um canal que tenha postado menos de 50 vídeos 
+nos últimos 6 meses, o botão carregar mais não aparecia, mesmo que ainda houvesse vídeos 
+de outras datas a serem carregados.
+Corrigido um problema em que, ao abrir links com a tecla enter em um campo de edição, as 
+letras maiúsculas eram convertidas em minúsculas, fazendo com que muitos links não abrissem 
+corretamente.
+Agora, ao pressionar certas teclas quando focado em um campo de edição (como Ctrl+c para 
+copiar e Ctrl+a para selecionar tudo), o programa não deve mais falar as informações que 
+normalmente são lidas ao pressionar essas teclas, como o autor do vídeo ou a quantidade de 
+comentários. Dessa forma, você pode selecionar e copiar conteúdo normalmente.
+Corrigido um problema em que, ao responder para uma resposta já existente em um 
+comentário, a menção ao autor da resposta original era feita incorretamente caso a opção de 
+encurtar identificadores estivesse ativa.
+O problema em que alguns valores eram anunciados no plural erroneamente, como ao ver a 
+quantidade de comentários de um vídeo com Ctrl+c, foi totalmente corrigido
+Adicionado o atalho para abrir links em campos de edição, a tecla enter, às dicas de uso.
+Agora, nas dicas de uso, as notas importantes possuirão números de identificação antes delas.
+
+Versão de 28/01/2024:
+Corrigido um problema em que, no player de vídeo, algumas teclas não funcionavam em 
+campos de edição, como Ctrl+seta para a esquerda, Ctrl+seta para a direita, Ctrl+home e 
+Ctrl+end.
+Corrigido um problema em que, ao pressionar Ctrl+seta para a esquerda ou Ctrl+seta para a 
+direita em um campo de edição do player, o programa tentava ir para o vídeo anterior ou o 
+próximo vídeo da playlist, caso você estivesse em uma.
+Agora, a forma de ativar caixas de seleção dentro do player mudou. Para marcar ou desmarcar 
+uma caixa, você deve obrigatoriamente pressionar Ctrl+espaço, ao invés de apenas espaço. Isso 
+ocorre para evitar que, por exemplo, você tente pausar o vídeo com espaço e acabe ativando 
+uma caixa sem querer, como as caixas de marcar como gostei e não gostei. Este novo atalho 
+também se aplica a botões, embora a tecla enter ainda funcione normalmente com eles. Esse 
+novo comportamento também foi explicado nas dicas de uso.
+Agora, caso você tente carregar um vídeo e feche o diálogo atual antes que ele carregue 
+completamente, o programa não tentará mais abrir o vídeo, evitando a aparição de um erro, 
+assim como foi feito com a reprodução automática nas playlists.
+Adicionado um atalho que faltava nas dicas de uso: Ctrl+shift+t, para traduzir um comentário 
+ou resposta.
+
+Versão de 27/01/2024:
+Corrigido um problema em que, em alguns casos, alguns números eram retirados 
+incorretamente das respostas de comentários com a função de encurtar identificadores ligada. 
+Infelizmente, por limitações da própria função, o problema ainda pode ocorrer em alguns 
+casos, mas mais raramente.
+Agora você pode escolher, através das configurações, se deseja ou não remover letras 
+maiúsculas em excesso nos nomes de vídeos e canais. Isso ajuda a melhorar a soletração em 
+alguns sintetizadores, como o Espeak, no NVDA. O padrão é ativado.
+Esta mesma função já existia anteriormente no Blind Tube, mas não era possível desligá-la. Ela 
+também foi aprimorada e, agora, funciona corretamente em outros diálogos, como o das 
+inscrições.
+Agora, foi adicionado um botão ao diálogo de inscrições que permite atualizá-las ou recarrega-
+las no programa. Isso é útil, por exemplo, quando você se inscreveu em um canal em outro 
+dispositivo, como um celular, e deseja que a inscrição apareça na lista de inscrições. Atualizá-
+las por esse diálogo também fará, automaticamente, com que você seja notificado sobre os 
+novos vídeos publicados pelo canal.
+Adicionada a explicação sobre as teclas PageUp e PageDown no controle deslizante de posição, 
+que permitem recuar ou avançar um minuto.
+
+Versão de 25/01/2024 (segunda atualização):
+Corrigido um problema em que, ao listar as playlists de um canal ou os vídeos da playlist, em 
+alguns momentos eram listados 25 resultados ao invés de 50, ccomo ocorre em outras seções 
+do programa.
+Corrigido um problema em que, ao tentar ir para o canal do autor na lista de vídeos em alta no 
+diálogo explorar, o programa sempre considerava o último vídeo da lista.
+
+Versão de 25/01/2024:
+Corrigido um problema em que algumas posições não eram aceitas no diálogo ir para a posição 
+no player de vídeo.
+Corrigido um erro na validação de posições com mais valores que o esperado.
+Corrigido um problema em que, ao fornecer uma posição maior que a duração total do vídeo, 
+o campo de edição da posição não era limpo automaticamente.
+
+Versão de 24/01/2024 (segunda atualização):
+O problema com as notificações que ocorria em alguns casos ao abrir o programa foi 
+totalmente corrigido.
+Corrigida a opção de explorar na tela inicial.
+O foco agora será movido automaticamente para a lista de vídeos em algumas ações, como ao 
+ordenar os vídeos.
+Corrigido um problema em que, ao ordenar os comentários por mais recentes, a opção de 
+carregar mais comentários não funcionava.
+
+Versão de 24/01/2024:
+Corrigido um problema com o novo sistema de busca dos vídeos ao baixar um canal, em que 
+alguns vídeos eram ignorados ou repetidos.
+Agora, o encurtamento de identificadores nos comentários e respostas também deve funcionar 
+corretamente com hífens e sublinhados.
+
+Versão de 23/01/2024:
+Agora, o Blind Tube utiliza um novo sistema para carregar os vídeos de um canal. Isso deve 
+resolver diversos problemas que o programa possuía, como o desaparecimento de vídeos 
+recentes de um canal e a falta de vídeos ao baixar um canal. Isso ocorria devido a uma 
+limitação da API do YouTube, que afeta canais com 500 vídeos ou mais. Agora, o programa 
+separa as requisições para a API por datas em intervalos de 6 meses, o que deve resolver os 
+problemas descritos acima. Note que, caso você entre em um canal que poste mais de 500  
+vídeos a cada 6 meses ou algo próximo disso, alguns vídeos ainda podem ser pulados 
+acidentalmente. Este novo sistema ainda está em teste e, caso necessário, pode haver mais 
+atualizações no futuro.
+A opção de ordenar os vídeos por mais antigo também foi totalmente reformulada e, além de 
+estar mais rápida, deve funcionar corretamente em canais com 500 vídeos ou mais. Note que, 
+com esta atualização, a opção carregar mais estará agora disponível ao ordenar os vídeos por 
+mais antigo.
+Agora, é possível ver a data em que um determinado canal foi criado. Para isso, basta ir ao 
+campo de informações no diálogo de canal.
+O botão carregar mais foi movido no diálogo de canal para facilitar a sua localização.
+No momento, a opção de ordenar os vídeos estará desativada quando você estiver no modo de 
+pesquisa, ou seja, tiver pesquisado por algum termo dentro de um canal. Caso você tente 
+ordenar os vídeos após pesquisar, o programa te alertará sobre essa limitação.
+Corrigidos alguns problemas com a opção de mostrar versão encurtada dos identificadores nos 
+comentários e respostas.
+Corrigido um erro relacionado ao carregamento das notificacções.
+
+Versão de 21/01/2024:
+Corrigido um problema envolvendo a abertura e fechamento dos diálogos, como o diálogo de 
+baixar um vídeo.
+Corrigido um problema em que o programa utilizava sempre o plural, mesmo quando havia 
+apenas um item em determinada fala. Por exemplo, ele falava 1 vídeos ao invés de apenas 1 
+vídeo.
+Agora, quando o Blind Tube começar a carregar o próximo vídeo automaticamente em uma 
+playlist, se você pressionar esc, o programa não acusará mais um erro e desistirá de carregar o 
+novo vídeo.
+Agora, o Blind Tube ignorará completamente qualquer notificação de vídeo que já tenha 1 mês 
+ou mais. Isso deve reduzir muito a lista de notificações, melhorando o carregamento.
+Agora, o Blind Tube avisará corretamente caso as notificações ainda não tenham sido 
+carregadas quando você abrí-las no menu principal.
+Corrigido um problema de lentidão extrema no carregamento das notificações.
+Corrigida a duplicação de atalho no diálogo de canal. Agora o atalho de baixar canal, que 
+conflitava com o atalho de configurações do canal (alt+n), foi trocado para alt+x.
+
+Versão de 19/01/2024:
+Agora, você pode alterar a velocidade de reprodução do vídeo para uma que fique mais 
+conveniente. Para isso, no player, basta pressionar Ctrl+seta para cima, para aumentar, ou 
+Ctrl+seta para baixo para diminuir. O programa anunciará qual foi a nova velocidade 
+selecionada, e você também pode abrir um menu com todas as velocidades disponíveis 
+pressionando 
+alt+e. Caso você passe da velocidade máxima, o programa voltará para a velocidade mínima e 
+visse versa.
+Você também pode definir uma velocidade padrão para todos os vídeos nas configurações, 
+além de definir uma para um canal específico (isso pode ser feito no menu de configurações do 
+canal, que será explicado mais adiante).
+Agora, você pode definir um volume maior que o padrão que vem configurado no Blind Tube, 
+que é de 100%. Você pode fazer isso mantendo pressionada a seta para cima até chegar ao 
+volume que deseja, ou pressionando alt+o e digitando um volume manualmente (até 1000). 
+Para voltar ao volume original, basta pressionar as teclas alt+l.
+Agora, você também pode passar para uma posição específica do vídeo. Para isso, basta 
+pressionar as teclas alt+r, e digitar um valor no formato hora dois pontos minuto dois pontos 
+segundo.
+Por exemplo, ao digitar 01:23:55, o programa irá para uma hora, 23 minutos e 55 segundos. 
+Você também pode omitir o 0 em números menores que 10, caso prefira, ou mesmo emitir a 
+hora, digitando apenas no formato minuto dois pontos segundo.
+Agora, é possível cancelar a retomada de um vídeo no programa. Ao invés de dizer apenas 
+retomando vídeo, ele abrirá uma caixa de diálogo com um botão cancelar. Caso você cancele a 
+retomada, o vídeo começará a tocar a partir do início.
+Recentemente, o YouTube começou a exibir identificadores dos usuários nos comentários e 
+respostas, ao invés dos nomes dos canais deles, como ocorria anteriormente. A mudança 
+ocorreu nos aplicativos oficiais do YouTube e na sua própria API, então ela não foi feita dentro 
+do Blind Tube, mas ele acabou sendo afetado pela mudança. Então agora, por padrão, o Blind 
+Tube mostrará versões encurtadas desses identificadores ao navegar pela lista de comentários. 
+O objetivo dessa alteração é tornar a leitura dos comentários mais fluida, removendo o arroba 
+e os números que aparecem no final do identificador. 
+Você agora pode definir configurações para um canal específico no Blind Tube. Para isso, entre 
+em um canal e, para abrir as opções existentes, pressione alt+n ou selecione a opção 
+configurações do canal.
+No momento, esse menu inclui apenas duas opções, que são: alterar a velocidade e 
+ativar/desativar as notificações para o canal (se inscrito). Essa segunda opção pode ser utilizada 
+como um sininho, pois permite desativar as notificações de um canal mesmo que você 
+continue inscrito nele.
+Agora, as notificações não são mais totalmente recarregadas quando você seleciona a opção na 
+tela inicial. Ao invés disso, o programa vai coletando as notificações dos seus canais inscritos na 
+inicialização e, quando um novo vídeo chega, ele apenas o adiciona à lista de notificações. 
+Quando você seleciona a opção ou pressiona alt+n, as notificações já são carregadas no mesmo 
+momento, sem que você precise aguardar o escaneamento de todos os canais. Pode ser que, 
+quando você iniciar o programa, nem todas as notificações tenham sido carregadas ainda. 
+Porém, isso deve ser finalizado após alguns segundos.
+Agora, ao alterar a posição do vídeo através do controle deslizante, o leitor de tela deve 
+anunciar isso corretamente, falando a nova posição definida, ao invés da posição antiga.
+Ao alterar a posição muito rapidamente, pode ser que o leitor de tela ainda pare de anunciar a 
+posição por um certo período.
+No controle deslizante de posição, você agora pode usar a tecla end para tentar ir para o final 
+do vídeo. O programa irá avançando o vídeo à medida que ele carrega e, caso após 8 segundos 
+ele ainda não tenha chegado ao final, ele avisará para que você pressione end novamente, até 
+chegar à posição desejada.
+Agora, ao reproduzir uma playlist, por padrão, o Blind Tube passará automaticamente para o 
+próximo vídeo da playlist quando o vídeo atual terminar. Ele também lhe dará a opção de 
+cancelar a reprodução automática para o momento atual, caso você deseje. Você pode 
+desativar a passagem automática dos vídeos nas configurações, bem como passar 
+manualmente para o vídeo anterior ou o próximo vídeo, usando Ctrl+setas esquerda e direita, 
+respectivamente.
+Novas teclas de atalho dentro do player: Ctrl+s (informa a duração total e o tempo decorrido), 
+Ctrl+v (informa o volume) e Ctrl+shift+v (informa a velocidade).
+Agora, os problemas que ocorriam ao tentar avançar o vídeo com uma conexão lenta devem 
+ser corrigidos. Quando você avançar com alguma tecla como a seta para a direita ou o atalho 
+alt+a, o programa avançará o máximo possível durante 8 segundos. Se, mesmo após esse 
+período, não for possível avançar tudo o que você solicitou, o programa avisará e permitirá que 
+você tente novamente. Isso deve evitar que o programa apenas mostre um erro e volte para o 
+início do vídeo todas as vezes, o que dificultava muito o uso.
+Os problemas com a opção de assistir vídeo por URL direta devem estar corrigidos.
+Agora, quando você estiver em uma lista com exatamente 2 itens no Blind Tube, você poderá 
+usar as setas cima e baixo normalmente. Antes, havia um problema em que era necessário 
+utilizar as setas esquerda e direita como, por exemplo, em um comentário com exatamente 
+duas respostas.
+Corrigido um problema em que, ao mudar para outra resposta com as setas na lista de 
+respostas de um comentário, as teclas de atalho como Ctrl+l e Ctrl+a não apontavam para a 
+resposta correta.
+Corrigido um problema em que, ao sair de um vídeo, ele não era excluído da memória RAM do 
+computador, fazendo com que o programa acumulasse muito uso desnecessário de memória.
+Agora, os atalhos relacionados ao título do vídeo mudaram nas listas de vídeos. Ctrl+t apenas 
+falará o título do vídeo, sem copiá-lo, enquanto Ctrl+shift+t copiará o título para a área de 
+transferência, sem falá-lo. O atalho para copiar o link do vídeo segue o mesmo, Ctrl+k, mas o 
+link não é mais falado quando copiado.
+Agora você pode traduzir comentários e respostas usando o mecanismo do Google Tradutor. 
+Para isso, basta pressionar as teclas Ctrl+shift+t sobre um comentário ou resposta, que o texto 
+será traduzido para o português e falado.
+Agora, o atalho de marcar um vídeo como não gostei não é mais o mesmo do de se inscrever 
+no canal no player de vídeo. O atalho de inscrição foi trocado para a letra i, e o campo de 
+edição de informações, que antes ocupava essa letra, foi trocado para a letra f. O botão de 
+fechar vídeo, que antes era acionado com alt+f, agora não possui mais um atalho aparente e só 
+pode ser acionado com esc. O mesmo aconteceu com todas as outras janelas que tinham um 
+botão fechar, como a janela de comentários.
+Agora, quando o Blind Tube é iniciado pela primeira vez, ele mostrará uma caixa de diálogo 
+indicando a existência de duas opções no menu principal: dicas de uso (alt+d) e novidades 
+(alt+v). O texto mostrado nestas mesmas opções também está disponível em arquivos na pasta 
+do programa, chamados dicas_de_uso.txt e novidades.txt.

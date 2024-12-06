@@ -1,0 +1,9 @@
+blind_tube/dist/
+blind_tube/build/
+blind_tube/token.json
+blind_tube/credentials.json
+blind_tube/search_history.txt
+blind_tube/data/
+__pycache/
+blind_tube/__pycache/
+blind_tube/npp_backup/

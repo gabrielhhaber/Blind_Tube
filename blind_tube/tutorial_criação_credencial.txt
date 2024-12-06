@@ -1,0 +1,35 @@
+Tutorial de criação de credencial para o Blind Tube
+
+Este tutorial se destina a usuários do Blind Tube que ainda não tenham uma credencial do Blind Tube ou desejem criar uma credencial extra de acesso ao programa.
+O tutorial é destinado principalmente a usuários de computador mais experientes. Caso você tenha dificuldades em seguir o tutorial, envie um e-mail para credenciais.blindtube@gmail.com, que uma nova credencial será enviada para você em breve. Caso você já tenha uma credencial, você deve seguir este tutorial ao invés de solicitar outra credencial por e-mail, devido aos limites de credenciais por conta do Google.
+
+Para criar uma credencial do Blind Tube, faça o seguinte:
+1. Abra o site console.cloud.google.com e faça login na sua conta Google. 
+
+2. Se solicitado, aceite os termos e pule os avisos do Google Cloud que aparecerem. 
+
+3. Clique no botão que diz nenhum projeto selecionado. Clique para trocar de projeto ou organização. 
+
+4. Procure o botão novo projeto, e digite o nome no campo que aparecer, depois clique em criar. Normalmente, no nome do projeto, costuma-se colocar algo como Blind Tube nomedapessoa, como Blind Tube Fernando, por exemplo. Depois feche com esc as notificações que aparecerem. 
+
+5. Agora pode ser necessário selecionar o projeto criado. Procure o botão que diz nenhum projeto selecionado novamente, clique, e depois clique no link com o nome do novo projeto. 
+
+6. Clique no link APIs e serviços, depois em ativar APIs e serviços. 
+
+7. Após isso, aparecerá um campo de pesquisa, digite youtube e tecle enter. 
+
+8. Procure o link que diz YouTube Data API v3, clique, depois vá no botão ativar esta API. 
+
+9. Aguarde um pouco, e A API será ativada. Clique no link criar credenciais. 
+
+10. Procure a caixa de combinação que diz selecionar uma API, e selecione YouTube Data API v3. Depois, na pergunta de quais dados você acessará, selecione dados do usuário, e clique em próximo. 
+
+11. Agora digite, no primeiro campo que aparecer, o nome do app. Por aqui, costumo digitar algo parecido ou igual ao nome do projeto, como Blind Tube Fernando. No e-mail para suporte do usuário, selecione com a seta para baixo e enter a primeira opção, referente ao e-mail da sua conta. Na parte do logotipo não é necessário colocar nada. No campo que diz campo de texto dos e-mails, você pode digitar o mesmo e-mail digitado no e-mail de suporte e teclar enter. Então, clique em salvar e continuar (não o botão concluir, pois este sairá da tela de criação de credencial!). 
+
+12. Agora vai aparecer uma tela relacionada aos escopos do aplicativo, que são as permissões que ele precisará acessar. Não é necessário alterar nada, clique novamente em salvar e continuar. 
+
+13. Agora, no tipo de aplicativo, selecione app para computador. No nome da credencial, você pode deixar como está se quiser, não interferirá em nada nem no uso do programa e nem nas telas de login que aparecerão. Ou você também pode colocar o mesmo nome de antes, Blind Tube nomedapessoa. Clique em criar. 
+
+14. Agora você terá várias opções relacionadas à sua nova credencial. Clique no botão download e salve o arquivo fornecido na pasta do Blind Tube, com o nome credentials.json. Clique em concluir e, então, realize o último passo! 
+
+15. Agora você estará de volta à tela APIs e serviços. Procure o link que diz tela de permissão OAuth, 4 de 5. Então, aguarde um pouco e procure o botão que diz publicar aplicativo. Clique, e depois selecione a opção confirmar. Isso facilitará o processo de login com a credencial, colocando o seu aplicativo próprio do Google Cloud no modo produção e permitindo que a credencial seja usada com qualquer conta do Google de sua preferência. Agora basta reabrir o Blind Tube!
