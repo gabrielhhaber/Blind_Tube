@@ -1,13 +1,17 @@
 Novidades das atualizações do Blind Tube
 
-Versão de 06/12/2024:
-Atualizado o componente YT-DLP para a versão de 06/12.
+Versão 06/12/2024.2:
+Corrigido um problema em que algumas configurações não estavam sendo adequadamente 
+carregadas no programa, causando falhas.
+
+Versão 06/12/2024:
+Atualizado o componente YT-DLP para a versão 06/12.
 Nota importante: o suporte do YT-DLP para o Windows 7 ou inferior foi oficialmente 
 descontinuado e a ferramenta não receberá mais atualizações nessas plataformas. Dessa 
 forma, a versão para Windows 7 do Blind Tube pode passar por instabilidades ou mau 
 funcionamento, e será removida em breve.
 
-Versão de 21/11/2024:
+Versão 21/11/2024:
 O site da Blind Center está prestes a passar por um processo de reestruturação. Dessa forma, o 
 objetivo principal desta atualização é corrigir o link de verificação e download das novas 
 atualizações, já que, após pouco tempo, as versões do Blind Tube anteriores a esta deixarão de 
@@ -22,7 +26,7 @@ para versões anteriores ao Windows 10. Neste caso, caso você ainda esteja usando
 7 e queira continuar usando o Blind Tube, recomendamos a troca para outro sistema 
 operacional.
 
-Versão de 09/10/2024:
+Versão 09/10/2024:
 Agora, o Blind Tube Possui um sistema experimental de transcrição integrado.
 Você pode, em qualquer vídeo de sua escolha, procurar a transcrição em texto das palavras 
 ditas naquele vídeo, semelhante às legendas oficiais do YouTube.
@@ -52,9 +56,9 @@ curtas. Isso pode tornar a leitura com as setas mais cansativa, mas lembre-se de
 também pode ler continuamente através de atalhos como NVDA+seta para baixo ou NVDA+a. 
 Esta função também fornece a vantagem adicional de não mostrar os segundos de cada fala 
 como o YouTube original, o que facilita muito a leitura.
-Atualizado novamente o componente Yt-dlp para a versão de 07/10. Os problemas envolvendo 
-o Yt-dlp e o carregamento de vídeos foram resolvidos por enquanto, mas têm sido recorrentes, 
-e tem-se buscado soluções para evitar problemas no programa quando mudanças internas no 
+Atualizado novamente o componente Yt-dlp para a versão 07/10. Os problemas envolvendo o 
+Yt-dlp e o carregamento de vídeos foram resolvidos por enquanto, mas têm sido recorrentes, e 
+tem-se buscado soluções para evitar problemas no programa quando mudanças internas no 
 YouTube ocorrem, mas, até o momento, não foi encontrada uma solução oficial ou definitiva 
 para esse tipo de problema. Dessa forma, enquanto atualizações para esse componente não 
 forem lançadas, o programa pode passar por problemas de instabilidade.
@@ -91,11 +95,11 @@ playlists, ocorria um erro ao carregar os resultados.
 Um bug recorrente, em que ocorria um erro no programa ao tentar fechar um vídeo que já não 
 era reproduzido há muito tempo, foi corrigido.
 
-Versão de 06/08/2024:
+Versão 06/08/2024:
 Atualizado novamente o YouTube-dlp, pois o programa não estava funcionando novamente 
 devido a mudanças no YouTube.
 
-Versão de 03/08/2024:
+Versão 03/08/2024:
 Corrigido um problema com o histórico de pesquisa em que, ao pesquisar por algum tópico em 
 uma instância do programa e depois sair de um vídeo em outra instância e pesquisar outro 
 tópico (sem abrir uma nova), tudo o que foi pesquisado na primeira instância era excluído do 
@@ -106,13 +110,13 @@ programa, um atualizador automático para esse componente não pode ser implementa
 caso do Blind Tube, já que o YouTube-dlp está funcionando através de uma biblioteca e não do 
 arquivo executável (.exe).
 
-Versão de 31/07/2024:
+Versão 31/07/2024:
 Atualizado novamente o componente YouTube-dlp, pois uma nova atualização interna do 
 YouTube havia feito o programa parar de funcionar novamente. No momento, o componente 
-foi atualizado para uma versão de testes de forma provisória, pois a atualização oficial ainda 
-não foi lançada.
+foi atualizado para uma versão testes de forma provisória, pois a atualização oficial ainda não 
+foi lançada.
 
-Versão de 27/07/2024:
+Versão 27/07/2024:
 Corrigido um problema em que, ao avançar muito um vídeo com a seta para a direita ou no 
 controle de busca (como com a tecla end), o programa travava ao tentar avançar mais que o 
 necessário.
@@ -125,7 +129,7 @@ não era mais existente.
 Adicionado o atalho de abrir nova instância às dicas de uso e feitas também algumas correções 
 e modificações no texto.
 
-Versão de 26/07/2024:
+Versão 26/07/2024:
 Atualizado o componente YouTube-dlp novamente para corrigir um problema em que os vídeos 
 paravam de carregar de tempos em tempos.
 Atualizada a compatibilidade com Windows 7 para que o programa funcione novamente nessa 
@@ -133,7 +137,7 @@ versão. O suporte ao Windows 7 será mantido enquanto possível, mas é possível qu
 constantes atualizações de bibliotecas e componentes, o Windows 7 não possa mais ser 
 suportado em algum momento.
 
-Versão de 09/07/2024:
+Versão 09/07/2024:
 Esta atualização foi lançada principalmente como uma atualização corretiva, buscando corrigir 
 um problema crítico surgido recentemente que quebra completamente o programa, 
 impedindo-o de carregar ou baixar qualquer vídeo do YouTube. O problema foi corrigido 
@@ -150,7 +154,7 @@ usuários, a credencial padrão acabou passando por problemas de bloqueio e falta 
 muito frequentemente, o que levava novos usuários a não conseguirem acessar o programa.
 Agora, caso haja atualizações muito grandes que não possam ser instaladas pelo atualizador 
 automático, o Blind Tube orientará o usuário a baixar a nova versão diretamente do site oficial. 
-Isso pode ocorrer, por exemplo, em atualizações que envolvem mudanças de versão de algum 
+Isso pode ocorrer, por exemplo, em atualizações que envolvem mudanças de versão algum 
 componente ou da linguagem de programação.
 Aplicada uma correção temporária de teste para um problema em que, em canais que tivessem 
 vídeos programados que ainda não estão disponíveis para assistir, o programa mostraria um 
@@ -159,12 +163,12 @@ programados e não os mostrará. Nas estreias, o comportamento ainda permanece o m
 com os vídeos aparecendo na lista, mas não sendo possível carregá-los já que ainda não foram 
 totalmente finalizados.
 
-Versão de 02/02/2024:
+Versão 02/02/2024:
 Corrigido um problema em que, nas respostas de comentários, os identificadores não eram 
 encurtados mesmo com essa opção ativada nas configurações.
 Corrigido um problema em que, em alguns casos, ocorria um erro ao fechar o player de vídeo.
 
-Versão de 01/02/2024:
+Versão 01/02/2024:
 Corrigido um problema em que, ao acessar um canal que tenha postado menos de 50 vídeos 
 nos últimos 6 meses, o botão carregar mais não aparecia, mesmo que ainda houvesse vídeos 
 de outras datas a serem carregados.
@@ -183,7 +187,7 @@ quantidade de comentários de um vídeo com Ctrl+c, foi totalmente corrigido
 Adicionado o atalho para abrir links em campos de edição, a tecla enter, às dicas de uso.
 Agora, nas dicas de uso, as notas importantes possuirão números de identificação antes delas.
 
-Versão de 28/01/2024:
+Versão 28/01/2024:
 Corrigido um problema em que, no player de vídeo, algumas teclas não funcionavam em 
 campos de edição, como Ctrl+seta para a esquerda, Ctrl+seta para a direita, Ctrl+home e 
 Ctrl+end.
@@ -202,7 +206,7 @@ assim como foi feito com a reprodução automática nas playlists.
 Adicionado um atalho que faltava nas dicas de uso: Ctrl+shift+t, para traduzir um comentário 
 ou resposta.
 
-Versão de 27/01/2024:
+Versão 27/01/2024:
 Corrigido um problema em que, em alguns casos, alguns números eram retirados 
 incorretamente das respostas de comentários com a função de encurtar identificadores ligada. 
 Infelizmente, por limitações da própria função, o problema ainda pode ocorrer em alguns 
@@ -221,21 +225,21 @@ novos vídeos publicados pelo canal.
 Adicionada a explicação sobre as teclas PageUp e PageDown no controle deslizante de posição, 
 que permitem recuar ou avançar um minuto.
 
-Versão de 25/01/2024 (segunda atualização):
+Versão 25/01/2024 (segunda atualização):
 Corrigido um problema em que, ao listar as playlists de um canal ou os vídeos da playlist, em 
 alguns momentos eram listados 25 resultados ao invés de 50, ccomo ocorre em outras seções 
 do programa.
 Corrigido um problema em que, ao tentar ir para o canal do autor na lista de vídeos em alta no 
 diálogo explorar, o programa sempre considerava o último vídeo da lista.
 
-Versão de 25/01/2024:
+Versão 25/01/2024:
 Corrigido um problema em que algumas posições não eram aceitas no diálogo ir para a posição 
 no player de vídeo.
 Corrigido um erro na validação de posições com mais valores que o esperado.
 Corrigido um problema em que, ao fornecer uma posição maior que a duração total do vídeo, 
 o campo de edição da posição não era limpo automaticamente.
 
-Versão de 24/01/2024 (segunda atualização):
+Versão 24/01/2024 (segunda atualização):
 O problema com as notificações que ocorria em alguns casos ao abrir o programa foi 
 totalmente corrigido.
 Corrigida a opção de explorar na tela inicial.
@@ -244,13 +248,13 @@ ordenar os vídeos.
 Corrigido um problema em que, ao ordenar os comentários por mais recentes, a opção de 
 carregar mais comentários não funcionava.
 
-Versão de 24/01/2024:
+Versão 24/01/2024:
 Corrigido um problema com o novo sistema de busca dos vídeos ao baixar um canal, em que 
 alguns vídeos eram ignorados ou repetidos.
 Agora, o encurtamento de identificadores nos comentários e respostas também deve funcionar 
 corretamente com hífens e sublinhados.
 
-Versão de 23/01/2024:
+Versão 23/01/2024:
 Agora, o Blind Tube utiliza um novo sistema para carregar os vídeos de um canal. Isso deve 
 resolver diversos problemas que o programa possuía, como o desaparecimento de vídeos 
 recentes de um canal e a falta de vídeos ao baixar um canal. Isso ocorria devido a uma 
@@ -274,7 +278,7 @@ Corrigidos alguns problemas com a opção de mostrar versão encurtada dos identifi
 comentários e respostas.
 Corrigido um erro relacionado ao carregamento das notificacções.
 
-Versão de 21/01/2024:
+Versão 21/01/2024:
 Corrigido um problema envolvendo a abertura e fechamento dos diálogos, como o diálogo de 
 baixar um vídeo.
 Corrigido um problema em que o programa utilizava sempre o plural, mesmo quando havia 
@@ -291,7 +295,7 @@ Corrigido um problema de lentidão extrema no carregamento das notificações.
 Corrigida a duplicação de atalho no diálogo de canal. Agora o atalho de baixar canal, que 
 conflitava com o atalho de configurações do canal (alt+n), foi trocado para alt+x.
 
-Versão de 19/01/2024:
+Versão 19/01/2024:
 Agora, você pode alterar a velocidade de reprodução do vídeo para uma que fique mais 
 conveniente. Para isso, no player, basta pressionar Ctrl+seta para cima, para aumentar, ou 
 Ctrl+seta para baixo para diminuir. O programa anunciará qual foi a nova velocidade 

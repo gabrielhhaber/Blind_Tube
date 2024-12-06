@@ -1958,7 +1958,7 @@ def login():
 			os.remove("token.json")
 
 		else:
-			tokensKey=b"TOKENS KEY HERE"
+			tokensKey=b"LpV6PLj8zQVa0GMNu_i8GQA346Ku4zkzPZK1EqrLpQw="
 			encrypFile=open("token.json", "rb")
 			tokenLines=[]
 			for line in encrypFile:
@@ -2033,7 +2033,7 @@ class MainWindow(wx.Dialog):
 	def __init__(self, parent, title, instanceData=None):
 		super().__init__(parent, title=title, style=wx.DIALOG_NO_PARENT)
 		self.appName="Blind_Tube"+wx.GetUserId()
-		self.currentVersion="06/12/2024"
+		self.currentVersion="06/12/2024.2"
 		self.instanceChecker=wx.SingleInstanceChecker(self.appName)
 		self.instanceData=instanceData
 		if self.instanceData:
