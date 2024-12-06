@@ -1,19 +1,11 @@
 Novidades das atualizações do Blind Tube
 
-Versão de 21/11/2024:
-O site da Blind Center está prestes a passar por um processo de reestruturação. Dessa forma, o 
-objetivo principal desta atualização é corrigir o link de verificação e download das novas 
-atualizações, já que, após pouco tempo, as versões do Blind Tube anteriores a esta deixarão de 
-se atualizar automaticamente.
-Além disso, também foi corrigido um problema em que quando, por algum motivo, o Blind 
-Tube não conseguia obter o arquivo de atualização do servidor, era mostrado um erro 
-relacionado ao JSON.
-Atualizado novamente o componente Yt-dlp.
-Nota importante: em alguns meses, o suporte ao Windows 7 no Blind Tube pode ser 
-totalmente descontinuado. Isso ocorre porque, recentemente, o Yt-dlp descontinuou o suporte 
-para versões anteriores ao Windows 10. Neste caso, caso você ainda esteja usando o Windows 
-7 e queira continuar usando o Blind Tube, recomendamos a troca para outro sistema 
-operacional.
+Versão de 06/12/2024:
+Atualizado o componente YT-DLP para a versão de 06/12.
+Nota importante: o suporte do YT-DLP para o Windows 7 ou inferior foi oficialmente 
+descontinuado e a ferramenta não receberá mais atualizações nessas plataformas. Dessa 
+forma, a versão para Windows 7 do Blind Tube pode passar por instabilidades ou mau 
+funcionamento, e será removida em breve.
 
 Versão de 09/10/2024:
 Agora, o Blind Tube Possui um sistema experimental de transcrição integrado.
