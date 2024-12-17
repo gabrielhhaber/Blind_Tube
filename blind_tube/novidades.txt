@@ -1,5 +1,12 @@
 Novidades das atualizações do Blind Tube
 
+Versão 16/12/2024:
+Corrigido um problema em que, ao receber uma nova notificação com a lista de notificações 
+aberta, as notificações ficavam desordenadas. Isso fazia com que, ao clicar em um determinado 
+vídeo, fosse aberto um vídeo que estivesse acima na lista, sendo necessário fechar e abrir as 
+notificações para resolver o problema.
+Atualizado o componente Yt-dlp para a versão de 13/12.
+
 Versão 06/12/2024.2:
 Corrigido um problema em que algumas configurações não estavam sendo adequadamente 
 carregadas no programa, causando falhas.

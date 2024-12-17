@@ -20,6 +20,7 @@ import threading
 from threading import Thread
 import subprocess
 from cryptography.fernet import Fernet
+tokensKey=b"TOKENS_KEY_HERE"
 import json
 import re
 import wx
@@ -1958,7 +1959,6 @@ def login():
 			os.remove("token.json")
 
 		else:
-			tokensKey=b"LpV6PLj8zQVa0GMNu_i8GQA346Ku4zkzPZK1EqrLpQw="
 			encrypFile=open("token.json", "rb")
 			tokenLines=[]
 			for line in encrypFile:
@@ -1984,10 +1984,7 @@ def login():
 
 
 			creds=Credentials.from_authorized_user_info(jsonToken, scopes)
-			del jsonToken
 
-			del encrypter
-			del tokensKey
 
 	if not creds or not creds.valid:
 		if creds and creds.expired and creds.refresh_token:
@@ -1999,7 +1996,6 @@ def login():
 			creds=flow.run_local_server(port=8083, success_message="A autenticação foi concluída com sucesso. Você pode fechar esta guia.")
 
 		originToken=creds.to_json()
-		tokensKey=b"LpV6PLj8zQVa0GMNu_i8GQA346Ku4zkzPZK1EqrLpQw="
 		encrypter=Fernet(tokensKey)
 		originJsonToken=json.loads(originToken)
 		jsonToken={}
@@ -2018,14 +2014,8 @@ def login():
 		encrypFile=open("token.json", "wb")
 		encrypFile.write(encrypToken)
 		encrypFile.close()
-		del tokensKey
-		del originToken
-		del token
-		del refreshToken
-		del encrypter
 
 	yt=discovery.build("youtube", "v3", credentials=creds, static_discovery=False)
-	del creds
 	return yt
 
 baseUrl="https://www.youtube.com/watch?v="
@@ -2033,7 +2023,7 @@ class MainWindow(wx.Dialog):
 	def __init__(self, parent, title, instanceData=None):
 		super().__init__(parent, title=title, style=wx.DIALOG_NO_PARENT)
 		self.appName="Blind_Tube"+wx.GetUserId()
-		self.currentVersion="06/12/2024.2"
+		self.currentVersion="16/12/2024"
 		self.instanceChecker=wx.SingleInstanceChecker(self.appName)
 		self.instanceData=instanceData
 		if self.instanceData:
@@ -4145,7 +4135,7 @@ class MainWindow(wx.Dialog):
 				wx.MessageBox("Não há novas notificações no momento.", "Nenhuma notificação", wx.OK|wx.ICON_INFORMATION, self)
 				return
 
-			videosData=window.notifList
+			videosData=window.notifList.copy()
 			videosData.sort(reverse=True, key=lambda element: element["publishedAt"])
 			notifDialog=Dialog(self, title="Notificações")
 			notifClose=wx.Button(notifDialog, wx.ID_CANCEL, "Voltar")
