@@ -1,5 +1,42 @@
 Novidades das atualizações do Blind Tube
 
+Versão 16/02/2025 (segunda atualização):
+Corrigido um problema em que, ao utilizar o programa sem uma conexão à internet disponível, 
+o programa poderia mostrar um erro na função de login.
+
+Versão 16/02/2025:
+O Blind Tube está em um processo de reorganização de código e atualização de bibliotecas, 
+com o objetivo de retomar o desenvolvimento do programa e adicionar novas funcionalidades. 
+Dessa forma, todo o programa foi atualizado para Python 3.13.
+Devido à descontinuação da biblioteca Yt-dlp para o sistema operacional Windows 7, a versão 
+Windows 7 do Blind Tube está sendo oficialmente descontinuada. O link de download será 
+removido do site, e essa versão não receberá mais atualizações. Assim, o Blind Tube só 
+funcionará corretamente a partir do sistema operacional Windows 8.
+Nas versões anteriores, o Blind Tube tinha um problema em que, ao suspender o computador, 
+a conexão com a API do YouTube começava a falhar, travando o programa e, muitas vezes, 
+levando todas as instâncias a fechar. Agora, foi implementado um sistema experimental de 
+checagem de login, que deve manter o usuário sempre conectado à API. Assim, a mensagem 
+de acesso perdido por inatividade também não será mais necessária, e o programa deve 
+permanecer sempre conectado.
+Corrigido um problema em que, em situações raras, o sistema de notificações do programa 
+simplesmente travava e nenhuma nova notificação era recebida até a reinicialização.
+Corrigido um problema em que, ao tentar colar texto com as teclas Ctrl+v no campo adicionar 
+comentário, o programa anunciava o volume atual do vídeo em vez disso. Isso só ocorria na 
+tela do player, não na tela de comentários.
+Nota: devido a essa mudança, agora não é mais possível usar as teclas Ctrl+v e Ctrl+shift+v 
+quando estiver focado em um campo de edição do player, como descrição ou informações.
+Agora, a leitura das transcrições de vídeos deve ser muito mais fácil e rápida. Isso porque o 
+texto da transcrição será exibido em linhas maiores, evitando a necessidade de utilizar a leitura 
+contínua do leitor de tela em todas as situações.
+Adicionada uma nova configuração traduzir transcrições automaticamente. Quando estiver 
+ativada, o diálogo de traduzir transcrição não será mais exibido caso uma transcrição não seja 
+encontrada no idioma definido por você. O padrão para essa configuração é ativado.
+Agora, o histórico de pesquisas também será salvo na pasta data do programa, ao invés de na 
+pasta principal do Blind Tube. Caso já houver um histórico na sua pasta principal, ele será 
+movido automaticamente ao abrir o programa.
+Substituída a biblioteca de tradução de comentários e respostas.
+Atualizado o componente Yt-DLP para a versão de 26/01.
+
 Versão 16/12/2024:
 Corrigido um problema em que, ao receber uma nova notificação com a lista de notificações 
 aberta, as notificações ficavam desordenadas. Isso fazia com que, ao clicar em um determinado 

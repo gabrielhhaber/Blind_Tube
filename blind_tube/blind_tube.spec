@@ -10,7 +10,7 @@ block_cipher = None
 a = Analysis(
     ['blind_tube.pyw'],
     pathex=[],
-    binaries=[("_blind_tube.cp310-win_amd64.pyd", ".")],
+    binaries=[("_blind_tube.cp313-win_amd64.pyd", ".")],
     datas=[],
     hiddenimports=[
 		"timer",
@@ -26,7 +26,7 @@ a = Analysis(
 "pynput",
 	"pynput.keyboard",
 	"psutil",
-	"googletrans",
+	"deep_translator",
 	"sound_lib.output",
 	"sound_lib.stream",
 	"google.oauth2",
