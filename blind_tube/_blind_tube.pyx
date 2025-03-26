@@ -46,7 +46,11 @@ from googleapiclient.errors import HttpError
 winVersion = platform.release()
 screenReader=outputs.nvda.NVDA()
 translator = GoogleTranslator(source="auto", target="pt")
-tokenKey=b"Token key here"
+try:
+    tokenKey=b"TOKEN KEY HERE"
+except Exception as e:
+    wx.MessageBox("Não foi possível encontrar a chave de criptografia dos tokens de acesso. Se você está executando este programa através do código-fonte, gere uma nova chave ou solicite uma ao desenvolvedor.", "Chave não encontrada", wx.OK | wx.ICON_ERROR)
+    sys.exit()
 
 
 def speak(text, interrupt=False, onlyOnWindow=False):
@@ -259,13 +263,13 @@ videoSpeeds={
     "3x": 200
 }
 streamOutput=output.Output()
-def openFile(filename):
-    file=open(filename, "r", encoding="utf-8")
+def openFile(filename, mode="r"):
+    file=open(filename, mode, encoding="utf-8")
     try:
         file.read()
     except UnicodeDecodeError:
         file.close()
-        file=open(filename, "r", encoding="latin-1")
+        file=open(filename, mode, encoding="latin-1")
     else:
         file.seek(0)
     return file
@@ -1630,7 +1634,7 @@ class MainWindow(wx.Dialog):
     def __init__(self, parent, title, instanceData=None):
         super().__init__(parent, title=title, style=wx.DIALOG_NO_PARENT)
         self.appName="Blind_Tube"+wx.GetUserId()
-        self.currentVersion="16/02/2025.2/s"
+        self.currentVersion="26/03/2025"
         self.instanceChecker=wx.SingleInstanceChecker(self.appName)
         self.instanceData=instanceData
         if self.instanceData:
@@ -1713,7 +1717,7 @@ class MainWindow(wx.Dialog):
                         datesDiferense=currentDate-videoData["publishedAt"]
                         daysDiferense=datesDiferense.days
                         hoursDiferense=datesDiferense.seconds//3600
-                        if daysDiferense>=30:
+                        if daysDiferense>14:
                             continue
                         if not videoData in self.notifList:
                             self.notifList.append(videoData)
@@ -1739,6 +1743,7 @@ class MainWindow(wx.Dialog):
                                 if self.getSetting("notif_shortcut"):
                                     notifMessage+=" Pressione ctrl+shift+n para abrir o vídeo"
                                 speak(notifMessage)
+                        time.sleep(0.05)
                     if currentIteration>1:
                         time.sleep(3)
                     else:
@@ -2093,18 +2098,19 @@ class MainWindow(wx.Dialog):
                 elif bytesFinalPosition<0:
                     bytesFinalPosition=0
                 if videoStream.is_playing:
-                    videoStream.pause()
                     wasPlaying=True
+                    videoStream.pause()
                 else:
                     wasPlaying=False
                 currentPosition=videoStream.bytes_to_seconds()
+                bytesCurrentPosition = videoStream.get_position()
                 finalPosition=videoStream.bytes_to_seconds(bytesFinalPosition)
-                if finalPosition<=currentPosition:
+                if bytesFinalPosition<=bytesCurrentPosition:
                     videoStream.set_position(bytesFinalPosition)
-                    if sendEvent:
-                        wx.PostEvent(app, PassEvent())
-                    if wasPlaying:
+                    if wasPlaying and not videoStream.length_in_seconds() - videoStream.bytes_to_seconds() <= 0.05:
                         videoStream.play()
+                    if sendEvent :
+                        wx.PostEvent(app, PassEvent())
                     return True
                 else:
                     currentPosition=videoStream.bytes_to_seconds()
@@ -2124,7 +2130,7 @@ class MainWindow(wx.Dialog):
                             if not self.isRepositioning:
                                 break
                             if forwardTimer and forwardTimer.elapsed>=8000:
-                                if wasPlaying:
+                                if wasPlaying and not finalPosition >= videoStream.length_in_seconds() - 1:
                                     videoStream.play()
                                 return False
                             try:
@@ -2231,8 +2237,7 @@ class MainWindow(wx.Dialog):
                 setSliderPos()
             posSlider.Bind(wx.EVT_SCROLL_TOP, onSlideHome)
             def onSlideEnd(event):
-                videoLength=videoStream.length_in_seconds()
-                endPosition=videoStream.seconds_to_bytes(videoLength)
+                endPosition=len(videoStream) -1
                 passResult=passTo(endPosition, sendEvent=False, timeoutForward=True)
                 if passResult==False:
                     speak("Não é possível continuar avançando, pois o vídeo ainda está carregando")
@@ -2258,6 +2263,8 @@ class MainWindow(wx.Dialog):
                     videoStream.pause()
                     pauseButton.SetLabel("Re&produzir")
                 else:
+                    if videoEnded:
+                        videoStream.set_position(0)
                     videoStream.play()
                     pauseButton.SetLabel("&Pausar")
                     videoEnded=False
@@ -2937,9 +2944,12 @@ class MainWindow(wx.Dialog):
                     time.sleep(0.25)
                     if not videoStream.isLoaded:
                         break
-                    if videoStream.is_stopped and not videoEnded:
-                        wx.PostEvent(playerDial, VideoEndEvent())
-                        videoEnded=True
+                    if videoStream.length_in_seconds() - videoStream.bytes_to_seconds() <= 0.05:
+                        if not videoEnded:
+                            wx.PostEvent(playerDial, VideoEndEvent())
+                            videoEnded = True
+                    else:
+                        videoEnded = False
                     stalledNow=videoStream.is_stalled and not videoStream.is_playing
                     if not videoStream.isLoaded:
                         break
