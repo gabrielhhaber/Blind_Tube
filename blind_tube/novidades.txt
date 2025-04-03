@@ -1,5 +1,53 @@
 Novidades das atualizações do Blind Tube
 
+Versão 03/04/2025:
+Agora, o Blind Tube foi tornado um software de código aberto no GitHub, licenciado sob a 
+licença GNU GENERAL PUBLIC LICENSE Version 3. Isso significa que o software se tornou 
+oficialmente open source, e os usuários podem modificar e distribuir o código como 
+desejarem, desde que incluam sempre esta licença original.
+Isso foi feito com o objetivo de disponibilizar o código de forma livre, que pode ser muito útil 
+para outros projetos da comunidade, além de permitir que o software possa ser melhorado 
+também por contribuições de outros desenvolvedores, que podem possivelmente ser 
+adicionadas ao programa oficial.
+Não é permitido, no entanto, fazer qualquer tipo de uso comercial deste código caso as novas 
+mudanças não sejam mantidas open source (código aberto). O projeto Blind Tube em si, com o 
+código original, nunca será de forma alguma vendido ou comercializado, sendo destinado 
+unicamente ao uso gratuito pela comunidade.
+A nova licença pode ser encontrada nas cópias mais atuais do programa a partir da versão do 
+dia 03/04/2025 e também no repositório do GitHub correspondente.
+Para desenvolvedores que quiserem explorar ou usar o código de alguma forma, é necessário 
+apenas modificar a variável tokenKey dentro do programa para uma chave de criptografia 
+própria, que pode ser gerada através da biblioteca cryptography dentro do Python. Também 
+será necessário ter o Python instalado e instalar todas as bibliotecas necessárias para o 
+funcionamento do programa através do arquivo requirements.txt presente. Por fim, será 
+necessário ter o software ffmpeg.exe, cuja cópia da versão usada está disponível no programa 
+oficial.
+O código está disponível no repositório abaixo.
+https://github.com/gabrielhhaber/blind_tube
+Atualizado novamente o componente YT-DLP após mudanças na plataforma, dessa vez para a 
+versão de 31/03.
+Nota importante: devido a limitações técnicas atuais na estrutura do programa, não é possível 
+fazer com que as atualizações do YT-DLP sejam aplicadas automaticamente, mas isso será 
+repensado em breve. Dessa forma, é necessário fazer atualizações para o programa inteiro 
+quando mudanças ocorrem, então as atualizações podem ficar um pouco atrasadas em relação 
+às originais do YT-DLP.
+
+Versão 26/03/2025:
+Atualizado o componente YT-DLP para a versão de 26 de março.
+Nota importante: devido a mudanças no YouTube, esse componente teve que ser atualizado 
+diversas vezes ao longo dos últimos 7 dias. Por isso, as atualizações do Blind Tube estão 
+demorando um pouco a chegar, devido às versões antigas pararem de funcionar muito 
+rapidamente.
+Corrigidos diversos problemas ao avançar/retroceder um vídeo, incluindo:
+1.	Em alguns casos, o vídeo não voltava corretamente ao tentar pressionar a seta para a 
+esquerda bem no início do vídeo.
+2.	Ao chegar no final de um vídeo, a mensagem de aviso era exibida uma vez, mas não 
+nas próximas vezes em que você chegava ao final do vídeo (caso o reproduzisse 
+novamente).
+3.	Ao tentar ir para o final de um vídeo com End no controle de posição, o vídeo não era 
+totalmente colocado no final e, ao reproduzi-lo novamente, ele não começava do 
+início, restando um pequeno fragmento do vídeo para reproduzir.
+
 Versão 16/02/2025 (segunda atualização):
 Corrigido um problema em que, ao utilizar o programa sem uma conexão à internet disponível, 
 o programa poderia mostrar um erro na função de login.

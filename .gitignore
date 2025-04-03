@@ -5,9 +5,10 @@ blind_tube/dist/
 blind_tube/token.json
 blind_tube/credentials.json
 blind_tube/ffmpeg.exe
-blind_tube/data/
 __pycache__/
 blind_tube/__pycache__/
 npp_backup/
 blind_tube/npp_backup/
+blind_tube/accessible_output2/
+blind_tube/sound_lib/
 venv/

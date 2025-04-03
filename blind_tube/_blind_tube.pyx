@@ -1634,7 +1634,7 @@ class MainWindow(wx.Dialog):
     def __init__(self, parent, title, instanceData=None):
         super().__init__(parent, title=title, style=wx.DIALOG_NO_PARENT)
         self.appName="Blind_Tube"+wx.GetUserId()
-        self.currentVersion="26/03/2025"
+        self.currentVersion="03/04/2025"
         self.instanceChecker=wx.SingleInstanceChecker(self.appName)
         self.instanceData=instanceData
         if self.instanceData:
