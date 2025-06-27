@@ -47,7 +47,7 @@ winVersion = platform.release()
 screenReader=outputs.nvda.NVDA()
 translator = GoogleTranslator(source="auto", target="pt")
 try:
-    tokenKey=b"TOKEN KEY HERE"
+    tokenKey=b"TOKEN_KEY_HERE"
 except Exception as e:
     wx.MessageBox("Não foi possível encontrar a chave de criptografia dos tokens de acesso. Se você está executando este programa através do código-fonte, gere uma nova chave ou solicite uma ao desenvolvedor.", "Chave não encontrada", wx.OK | wx.ICON_ERROR)
     sys.exit()
@@ -66,13 +66,12 @@ VideoEndEvent, EVT_VIDEO_END=NewEvent()
 NewVideosEvent, EVT_NEW_VIDEOS=NewEvent()
 VideoCloseEvent, EVT_VIDEO_CLOSE=NewEvent()
 InstanceEvent, EVT_INSTANCE=NewEvent()
+UpdaterEvent, EVT_UPDATER = NewEvent()
 NotifSelectedEvent, EVT_NOTIF_SELECT=NewEvent()
 PassEvent, EVT_PASS=NewEvent()
 DownloadEvent, EVT_DOWNLOAD=NewEvent()
 PercentEvent, EVT_PERCENT=NewEvent()
 ConvPercentEvent, EVT_CONV_PERCENT=NewEvent()
-UpdaterEvent, EVT_UPDATER=NewEvent()
-UpdateEvent, EVT_UPDATE=NewEvent()
 ErrorEvent, EVT_ERROR=NewEvent()
 MessageEvent, EVT_MESSAGE=NewEvent()
 QuotaExceededEvent, EVT_QUOTA_EXCEEDED=NewEvent()
@@ -1601,7 +1600,7 @@ def login():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            wx.MessageBox("Pressione enter para abrir seu navegador e fazer login em sua conta do YouTube.", "Você não está autenticado", wx.OK)
+            wx.MessageBox("Pressione enter para abrir seu navegador padrão e fazer login em sua conta do YouTube.", "Você não está autenticado", wx.OK)
             flow=InstalledAppFlow.from_client_secrets_file("credentials.json", scopes)
             creds=flow.run_local_server(port=8083, success_message="A autenticação foi concluída com sucesso. Você pode fechar esta guia.")
         originToken=creds.to_json()
@@ -1634,7 +1633,7 @@ class MainWindow(wx.Dialog):
     def __init__(self, parent, title, instanceData=None):
         super().__init__(parent, title=title, style=wx.DIALOG_NO_PARENT)
         self.appName="Blind_Tube"+wx.GetUserId()
-        self.currentVersion="03/04/2025"
+        self.currentVersion="09/06/2025"
         self.instanceChecker=wx.SingleInstanceChecker(self.appName)
         self.instanceData=instanceData
         if self.instanceData:
@@ -1643,7 +1642,6 @@ class MainWindow(wx.Dialog):
         else:
             self.mainSubs=self.getMainSubs()
             self.allSubs=self.getAllSubs()
-            self.removeOldVersionFiles()
         self.isFirstInstance=not self.instanceChecker.IsAnotherRunning()
         self.isNotifying=False
         self.notifsLoaded=False
@@ -1761,9 +1759,9 @@ class MainWindow(wx.Dialog):
         checkUrl="https://blind-center.com.br/downloads/blind_tube/bt_update.json"
         def onUpdaterEvent(event):
             versionString=event.siteVersion.replace("/s", "")
-            wantToUpdate=wx.MessageBox("Uma nova atualização do Blind Tube está disponível. Ela foi lançada em "+versionString+". Deseja baixá-la e instalá-la agora? Ao instalar a atualização, todas as instâncias atuais do Blind Tube serão fechadas.", "Atualização do Blind Tube", wx.YES_NO|wx.ICON_QUESTION, self)
+            wantToUpdate=wx.MessageBox("Uma nova atualização do Blind Tube está disponível. Ela foi lançada em "+versionString+". Deseja abrir seu navegador e baixá-la agora? Ao fazer isso, todas as instâncias atuais do Blind Tube serão fechadas.", "Atualização do Blind Tube", wx.YES_NO|wx.ICON_QUESTION, self)
             if wantToUpdate==wx.YES:
-                self.update()
+                self.openUpdateOnBrowser()
         self.Bind(EVT_UPDATER, onUpdaterEvent)
         def checkUpdates():
             self.isCheckingUpdates=True
@@ -1786,90 +1784,11 @@ class MainWindow(wx.Dialog):
             self.isCheckingUpdates=False
         if not self.isCheckingUpdates:
             Thread(target=checkUpdates).start()
-    def update(self):
+    def openUpdateOnBrowser(self):
         self.isCheckingUpdates=False
         downloadUrl="https://blind-center.com.br/downloads/blind_tube/blind_tube.zip"
-        zipFilePath="../blind_tube.zip"
-        self.updateCanceled=False
-        if "/s" in self.siteVersion:
-            wx.MessageBox("Esta atualização do Blind Tube possui modificações importantes, então não pode ser instalada diretamente pelo programa. Para instalar, selecione a opção fechar todas as instâncias na tela inicial do programa e confirme clicando em sim, depois baixe o programa do site oficial e descompacte novamente.", "Não é possível atualizar ainda", wx.OK|wx.ICON_INFORMATION, self)
-            return
-        updateDial=wx.Dialog(self, title="Baixando atualização")
-        updateProgress=wx.Gauge(updateDial)
-        def onUpdatePercentChange(event):
-            updateProgress.SetValue(event.percentage)
-        updateProgress.Bind(EVT_PERCENT, onUpdatePercentChange)
-        cancelUpdate=wx.Button(updateDial, label="&Cancelar")
-        def onUpdateCancel(event):
-            self.updateCanceled=True
-            updateDial.Destroy()
-        cancelUpdate.Bind(wx.EVT_BUTTON, onUpdateCancel)
-        def onUpdateEvent(event):
-            if event.completed==True:
-                wx.MessageBox("A atualização foi instalada com sucesso. Clique em ok para reiniciar o programa.", "Instalação concluída", wx.OK|wx.ICON_INFORMATION, self)
-                subprocess.Popen("blind_tube.exe")
-                updateDial.Destroy()
-                window.Destroy()
-            else:
-                errorType=event.exc.__class__.__name__
-                errorDesc=str(event.exc)
-                wantToTryAgain=                wx.MessageBox(f"A instalação da atualização não foi concluída corretamente. A mensagem de erro foi: {errorType}: {errorDesc}. Deseja tentar novamente?", "Erro de instalação", wx.YES_NO|wx.ICON_ERROR, self)
-                if wantToTryAgain==wx.YES:
-                    self.update()
-                updateDial.Destroy()
-        updateDial.Bind(EVT_UPDATE, onUpdateEvent)
-        def updateBackground():
-            updateStream=requests.get(downloadUrl, stream=True)
-            updateSize=int(updateStream.headers.get("content-length"))
-            updateFile=open(zipFilePath, "wb")
-            currentPercentage=-1
-            oldPercentage=currentPercentage
-            for part in updateStream.iter_content(chunk_size=4096):
-                updateFile.write(part)
-                currentFileSize=os.path.getsize(zipFilePath)
-                currentPercentage=currentFileSize*100//updateSize
-                if not self.updateCanceled:
-                    if currentPercentage!=oldPercentage:
-                        wx.PostEvent(updateProgress, PercentEvent(percentage=currentPercentage))
-                    oldPercentage=currentPercentage
-                else:
-                    sys.exit()
-            updateFile.close()
-            speak("Instalando atualização", interrupt=True)
-            updateDial.SetTitle("Instalando atualização")
-            try:
-                zipFile=ZipFile(zipFilePath, "r")
-                fileNames=zipFile.namelist()
-                for fileName in fileNames:
-                    nameWithoutParent=fileName.replace("blind_tube/", "")
-                    if os.path.isfile(nameWithoutParent) and not nameWithoutParent.endswith(".dll") and not nameWithoutParent.endswith(".pyd") or "_blind_tube" in nameWithoutParent:
-                        os.rename(nameWithoutParent, nameWithoutParent+".tmp")
-                    if not nameWithoutParent.endswith(".dll") and not nameWithoutParent.endswith(".pyd"):
-                        zipFile.extract(fileName, "../")
-                    elif not os.path.isfile(nameWithoutParent) or "_blind_tube" in nameWithoutParent:
-                        zipFile.extract(fileName, "../")
-            except Exception as exc:
-                wx.PostEvent(updateDial, UpdateEvent(completed=False, exc=exc))
-            else:
-                zipFile.close()
-                os.remove(zipFilePath)
-                wx.PostEvent(updateDial, UpdateEvent(completed=True))
-        DmThread(target=updateBackground).start()
-        updateDial.ShowModal()
-    def removeOldVersionFiles(self):
-        tempFiles=glob("**/*.tmp", recursive=True)
-        if tempFiles:
-            processName="blind_tube.exe"
-            currentProcessPid=os.getpid()
-            for process in psutil.process_iter():
-                if process.name()==processName:
-                    if not process.pid==currentProcessPid:
-                        process.terminate()
-            for tempFile in tempFiles:
-                try:
-                    os.remove(tempFile)
-                except Exception as e:
-                    pass
+        wx.LaunchDefaultBrowser(downloadUrl)
+        killProgram()
     def onNewWindow(self):
         def openInstance(event):
             instanceData={
