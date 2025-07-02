@@ -1,5 +1,21 @@
 Novidades das atualizações do Blind Tube
 
+Versão 02/07/2025.2:
+Como a atualização anterior teve muitos novos recursos e melhorias, esta atualização foi 
+voltada para corrigir alguns problemas restantes e melhorar a usabilidade geral do programa.
+Corrigido um problema em que o carregamento de múltiplos vídeos de uma vez não era 
+bloqueado em todas as situações ou menus (por exemplo, era bloqueado nas inscrições, mas 
+não nas notificações e nas URLs).
+A função de encurtar os identificadores nos comentários e respostas foi significativamente 
+melhorada.
+Agora, a função sempre funcionará nas respostas, independente de haver ou não certos 
+símbolos presentes no texto em certas situações.
+A legibilidade também foi melhorada, e, para consistência, é sempre feita a leitura de apenas 
+um arroba, independente de ser um comentário, resposta, nome de autor etc.
+Além disso, não haverá mais casos em que os números do identificador não são substituídos 
+corretamente.
+Algumas atualizações nas dicas de uso e adição de comandos mais recentes.
+
 Versão 02/07/2025:
 Agora, o Blind Tube pode ser iniciado junto com o Windows ao ligar seu computador, sem abrir 
 nenhuma janela!

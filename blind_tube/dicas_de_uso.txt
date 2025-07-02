@@ -6,6 +6,7 @@ Em qualquer janela do Blind Tube em que você esteja, menos as janelas em que oco
 operação (em que há apenas um botão cancelar), você pode voltar à janela anterior com esc. 
 Para fechar a instância atual completamente (sem abrir a janela em que você estava 
 anteriormente), pressione alt+f4.
+Para sair apenas do diálogo atual, sem fechar totalmente a instância atual, pressione Esc.
 Você pode abrir uma nova instância do Blind Tube de qualquer lugar onde você estiver, sem 
 precisar estar em nenhuma janela de dentro do Blind Tube. Para isso, pressione as teclas 
 Ctrl+shift+b. Em alguns casos, o Windows pode não mover o foco automaticamente para a 
@@ -20,6 +21,7 @@ eles.
 
 Atalhos das listas de vídeos (quando dentro de um canal, nos resultados de pesquisa, no menu 
 explorar ou no player. Estes atalhos não funcionam dentro das notificações:
+Enter ou Espaço: abre o vídeo selecionado no player interno do Blind Tube.
 Ctrl+a: anuncia o autor do vídeo (ou nome do canal que o postou)
 Ctrl+u: anuncia a duração total do vídeo
 Ctrl+p: anuncia a data e hora de publicação do vídeo
@@ -29,6 +31,8 @@ Ctrl+c: anuncia a quantidade de comentários do vídeo
 Ctrl+t: anuncia o título do vídeo
 Ctrl+shift+t: copia o título do vídeo para a área de transferência
 Ctrl+k: copia o link do vídeo para a área de transferência
+Ctrl+Enter: abre o vídeo selecionado no navegador padrão (útil para lives e estreias, por 
+exemplo, que não são diretamente suportadas pelo Blind Tube).
 
 Atalhos do player de vídeo:
 Estas teclas não funcionam quando você está posicionado em um campo de edição dentro do 
@@ -41,6 +45,7 @@ respectivamente. No caso da tecla end, o programa tentará avançar à medida que o
 carrega e, caso após 8 segundos o vídeo ainda não tenha chegado ao final, ele avisará para que 
 você pressione end novamente, até chegar à posição desejada.
 Setas cima e baixo: aumentam e diminuem o volume em 2%, respectivamente. 
+Pode ser mantido pressionado para aumentar ou diminuir rapidamente o volume.
 O programa também anuncia quando o volume 100% é ultrapassado
 Quando no controle deslizante de posição, retrocedem e avançam 5 
 segundos, respectivamente.
@@ -73,7 +78,7 @@ Ctrl+p: anuncia a data e hora de publicação do comentário.
 Ctrl+r: anuncia a quantidade de respostas do comentário (não aplicável ao diálogo de 
 respostas).
 Nota: devido a limitações na API do próprio YouTube, no momento, não é possível dar like em 
-um comentário pelo Blind Tube. Essa função será implementada no Blind Tube, caso seja 
+um comentário pelo Blind Tube. Essa função será implementada no Blind Tube caso seja 
 possível em algum momento.
 
 Outros atalhos:
@@ -84,4 +89,5 @@ Notas importantes:
 1.	No momento, o player interno do Blind Tube não é compatível com a reprodução de 
 estreias ou lives em andamento. Para acessar uma estreia ou live, você precisará copiar 
 o link do vídeo com ctrl+k e, então, iniciá-lo em um player de sua preferência, como o 
-MPC-HC ou o VLC.
+MPC-HC ou o VLC, ou utilizar as teclas Ctrl+Enter para abrir o vídeo no navegador 
+padrão.

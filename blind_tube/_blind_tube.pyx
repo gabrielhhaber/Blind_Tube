@@ -156,13 +156,13 @@ class VideosList(List):
         self.videoData = None
 
         def onVideoSelect(event, videosList, videoData, videosData=None, isPlaylist=False, playlistData=None, playlistItems=None):
+            if window.video_is_loading:
+                speak("Aguarde. Outro vídeo já está carregando.")
+                return
+            speak("Carregando vídeo...")
+            window.video_is_loading = True
             currentWindow = videosList.GetParent()
             try:
-                if window.video_is_loading:
-                    speak("Aguarde. Outro vídeo já está carregando.")
-                    return
-                speak("Carregando vídeo...")
-                window.video_is_loading = True
                 DmThread(target=window.playVideo, args=(currentWindow, self.videoData, self.videosData,
                                                         self.isPlaylist, False, self.playlistData, self.playlistItems)).start()
             except Exception as e:
@@ -419,7 +419,7 @@ def getCommentData(comment, commentThread, videoData):
         "authorId": comment["snippet"]["authorChannelId"]["value"],
         "channelTitle": videoData["channelTitle"],
         "channelId": videoData["channelId"],
-        "originalText": comment["snippet"]["textDisplay"],
+        "originalText": comment["snippet"]["textDisplay"].replace("​", "").replace("⁠", ""),
         "userRating": comment["snippet"]["viewerRating"],
         "likeCount": comment["snippet"]["likeCount"],
         "likeString": likeString,
@@ -450,7 +450,7 @@ def getReplyData(reply, commentData):
         "authorName": reply["snippet"]["authorDisplayName"],
         "authorId": reply["snippet"]["authorChannelId"]["value"],
         "channelId": commentData["channelId"],
-        "originalText": reply["snippet"]["textDisplay"],
+        "originalText": reply["snippet"]["textDisplay"].replace("​", "").replace("⁠", ""),
         "likeCount": reply["snippet"]["likeCount"],
         "likeString": likeString,
         "publishedAt": publishedAt,
@@ -477,18 +477,14 @@ def truncateIfNecessary(commentData, maxCharacters=140):
     return commentData
 
 
-def fixHandles(originalText, isReply=False, replaceNumbers=True):
+def fixHandles(originalText, replaceNumbers=True):
     if not originalText.startswith("@"):
         return originalText
     fixedText = originalText
-    atExp = r"(?<!@)@"
-    if not isReply:
-        fixedText = re.sub(atExp, "", fixedText, 1)
-    else:
-        fixedText = fixedText.replace("@@", "@")
-    numbersExp = r"((?<=[a-zA-Z-_])[\d]+$|(?<=[a-zA-Z-_])[\d]+(?=\s))"
+    fixedText = fixedText.replace("@@", "@", 1)
+    numbersExp = r"(@[a-zA-Z]+)\d{2,4}"
     if replaceNumbers:
-        fixedText = re.sub(numbersExp, "", fixedText, 1)
+        fixedText = re.sub(numbersExp, r"\1", fixedText, 1)
     return fixedText
 
 
@@ -2019,7 +2015,7 @@ class MainWindow(wx.Dialog):
         super().__init__(parent, title=title, style=wx.DIALOG_NO_PARENT)
         self.appName = "Blind_Tube"+wx.GetUserId()
         self.video_is_loading = False
-        self.currentVersion = "02/07/2025"
+        self.currentVersion = "02/07/2025.2"
         self.instanceChecker = wx.SingleInstanceChecker(self.appName)
         self.instanceData = instanceData
         if self.instanceData:
@@ -2241,7 +2237,11 @@ class MainWindow(wx.Dialog):
         wx.PostEvent(self, InstanceEvent())
 
     def onNotifClicked(self, videoData):
+        if window.video_is_loading:
+            speak("Aguarde. Outro vídeo já está carregando.")
+            return
         speak("Carregando vídeo...")
+        window.video_is_loading = True
         videos = yt.videos().list(part="id,snippet,statistics,contentDetails",
                                   id=videoData["id"]).execute()
         video = videos["items"][0]
@@ -2253,7 +2253,11 @@ class MainWindow(wx.Dialog):
             if not self.notifiedVideo:
                 speak("Você ainda não recebeu nenhuma notificação de vídeo.")
                 return
+            if window.video_is_loading:
+                speak("Aguarde. Outro vídeo já está carregando.")
+                return
             speak("Carregando vídeo...")
+            window.video_is_loading = True
             videos = yt.videos().list(part="id,snippet,statistics,contentDetails",
                                       id=self.notifiedVideo).execute()
             video = videos["items"][0]
@@ -2592,7 +2596,8 @@ class MainWindow(wx.Dialog):
 
             def add_chapters_to_listing(chapters, chapters_listing):
                 for chapter in chapters:
-                    chapters_listing.Append((f"{chapter['desc']} ({chapter['time']})", ))
+                    chapters_listing.Append(
+                        (f"{chapter['desc']} ({chapter['time']})",))
 
             def on_select_chapter(event, chapters_dial, chapters_listing, chapters):
                 chapter = chapters[chapters_listing.GetFocusedItem()]
@@ -3130,18 +3135,20 @@ class MainWindow(wx.Dialog):
                         else:
                             authorName = commentData["authorName"]
                         text = commentData["text"]
-                        text = text.replace("​", "")
+                        if self.getSetting("fix_names"):
+                            text = fixHandles(text)
                         commentString = f"{authorName}; {getDatesDiferense(commentData['publishedAt'])}; {text}; {commentData['likeString']} marcações gostei; {commentData['replyCount']} respostas"
                         list.Append((commentString,))
 
                     def addReply(list, replyData):
                         if self.getSetting("delete_at"):
                             authorName = fixHandles(replyData["authorName"])
-                            text = fixHandles(replyData["text"], isReply=True)
+                            text = fixHandles(replyData["text"])
                         else:
                             authorName = replyData["authorName"]
                             text = replyData["text"]
-                        text = text.replace("​", "")
+                        if self.getSetting("fix_names"):
+                            text = fixHandles(text)
                         replyString = f"{authorName}; {getDatesDiferense(replyData['publishedAt'])}; {text}; {replyData['likeString']} marcações gostei"
                         list.Append((replyString,))
 
@@ -3305,7 +3312,7 @@ class MainWindow(wx.Dialog):
                                 formatedText = formatedText.replace("​", "")
                                 if self.getSetting("delete_at"):
                                     formatedText = fixHandles(
-                                        formatedText, isReply=True)
+                                        formatedText)
                                 completeText.SetValue(formatedText)
                                 authorId = replyData["authorId"]
                                 authorName = replyData["authorName"]
@@ -4011,7 +4018,11 @@ class MainWindow(wx.Dialog):
                 addFeedVideo(videosList, videoData)
 
             def onNotifSelected(event):
+                if window.video_is_loading:
+                    speak("Aguarde. Outro vídeo já está carregando.")
+                    return
                 speak("Carregando vídeo...")
+                window.video_is_loading = True
 
                 def getVideo():
                     item = videosList.GetFocusedItem()
@@ -4128,7 +4139,11 @@ class MainWindow(wx.Dialog):
             if not UrlIsValid(URL):
                 speak("Esta URL de vídeo não é válida.")
                 return
+            if window.video_is_loading:
+                speak("Aguarde. Outro vídeo já está carregando.")
+                return
             speak("Carregando vídeo...")
+            window.video_is_loading = True
 
             def getVideo():
                 idExp = r"[a-zA-Z0-9-_]{11}"
