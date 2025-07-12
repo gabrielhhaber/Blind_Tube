@@ -1,5 +1,49 @@
 Novidades das atualizações do Blind Tube
 
+Versão 12/07/2025:
+Agora, o código de download e reprodução de vídeos foi totalmente reescrito para usar a 
+biblioteca yt-dlp.exe, ao invés do módulo Python usado anteriormente.
+Isso significa que o YT-DLP poderá ser atualizado automaticamente pelo programa em segundo 
+plano, o que significa que não será mais necessário atualizar o Blind Tube a cada nova versão 
+do YT-DLP.
+Note que essa atualização só ocorrerá se você estiver com a verificação de atualizações 
+habilitada nas configurações do Blind Tube. Se você desativar a verificação de atualizações do 
+Blind Tube, será desativada também a verificação do YT-DLP.
+Com a reescrita quase completa do código da função de download, diversos erros relacionados 
+a ela foram corrigidos. Isso inclui um erro já antigo no download de canais, em que o programa 
+não percorria corretamente a lista de vídeos ao realizar o download. Alguns bugs, como erros 
+inesperados ao clicar na função de cancelar durante o download ou conversão, também devem 
+ser muito menos frequentes.
+Observe que as atualizações agora são verificadas em segundo plano a cada 10 minutos. Se o 
+YT-DLP estiver se atualizando enquanto você tentar carregar um vídeo (o que é muito raro), 
+você provavelmente receberá um erro e terá que esperar alguns segundos até a atualização ser 
+concluída.
+Além disso, problemas do próprio YT-DLP que ainda não tenham atualizações de correção 
+continuam impossíveis de resolver pelo próprio Blind Tube, embora as atualizações sejam 
+automáticas, sempre que houver.
+Como esta atualização envolve diversas reestruturações de código que foram necessárias para 
+usar essa nova biblioteca, é possível que haja problemas ocultos em alguma função, embora 
+tenham sido feitos testes rigorosos em tudo que foi modificado. Caso ainda assim haja algum 
+problema, será lançada uma nova atualização secundária para corrigí-lo.
+Novas configurações de notificação adicionadas. Agora, você pode mudar tanto o limite de dias 
+para exibir na lista de notificações, bem como o limite de horas para o aviso de novo vídeo 
+(caso as notificações estejam ativadas).
+Embora esses padrões já estivessem definidos antes de forma restrita no próprio código e 
+impossíveis de modificar, agora o novo padrão é: os últimos 3 dias para a lista de notificações 
+(antes 14) e as últimas 5 horas para novos vídeos (antes apenas uma hora). Ou seja, na lista de 
+notificações só serão exibidos os vídeos dos últimos 3 dias, enquanto avisos de novos vídeos 
+serão enviados apenas para as últimas 5 horas.
+Agora, ao abrir uma nova instância do Blind Tube com o atalho CTRL+SHIFT+B, ela deve entrar 
+em foco com muito mais frequência. Isso porque o programa agora tenta maximizar a janela, 
+caso o Windows não a coloque em foco automaticamente. Por rasões desconhecidas, ainda há 
+vezes em que a janela não é realmente focalizada ao abrir uma nova instância, possivelmente 
+por um comportamento do próprio Windows ou da biblioteca WXPython.
+Corrigido um problema em que a função atualizar o programa manualmente, do menu 
+principal, não estava abrindo para download no site como pretendido.
+Após algumas verificações, foi constatado que a função de atualizar inscrições não era 
+realmente funcional, devido a limitações da própria API do YouTube. Dado que não havia uma 
+forma de torná-la realmente funcional, ela foi removida.
+
 Versão 02/07/2025.2:
 Como a atualização anterior teve muitos novos recursos e melhorias, esta atualização foi 
 voltada para corrigir alguns problemas restantes e melhorar a usabilidade geral do programa.

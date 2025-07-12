@@ -85,6 +85,7 @@ coll = COLLECT(
     name='blind_tube',
 )
 shutil.copy("ffmpeg.exe", dist)
+shutil.copy("yt-dlp.exe", dist)
 shutil.copy("python.ico", dist)
 os.makedirs(dist+"/data", exist_ok=True)
 shutil.copy("data/blind_tube_default.ini", dist+"/data/blind_tube_default.ini")

@@ -5,6 +5,7 @@ blind_tube/dist/
 blind_tube/token.json
 blind_tube/credentials.json
 blind_tube/ffmpeg.exe
+blind_tube/yt-dlp.exe
 __pycache__/
 blind_tube/__pycache__/
 npp_backup/

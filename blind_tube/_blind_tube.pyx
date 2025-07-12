@@ -15,7 +15,6 @@ import re
 import wx
 import wx.adv
 import locale
-from yt_dlp import YoutubeDL
 from youtube_transcript_api import YouTubeTranscriptApi
 from language_dict import dict as languageDict
 from wx.lib.newevent import NewEvent
@@ -75,7 +74,6 @@ UpdaterEvent, EVT_UPDATER = NewEvent()
 NotifSelectedEvent, EVT_NOTIF_SELECT = NewEvent()
 PassEvent, EVT_PASS = NewEvent()
 DownloadEvent, EVT_DOWNLOAD = NewEvent()
-PercentEvent, EVT_PERCENT = NewEvent()
 ConvPercentEvent, EVT_CONV_PERCENT = NewEvent()
 ErrorEvent, EVT_ERROR = NewEvent()
 MessageEvent, EVT_MESSAGE = NewEvent()
@@ -132,13 +130,14 @@ class List(wx.ListCtrl):
 
 
 class VideosList(List):
-    def __init__(self, parent, title, isChannel=False, isPlaylist=False, supportShortcuts=True, playlistData=None, playlistItems=None):
+    def __init__(self, window, parent, title, isChannel=False, isPlaylist=False, supports_shortcuts=True, playlistData=None, playlistItems=None):
         super().__init__(parent, title)
+        self.window = window
         self.parent = parent
         self.title = title
         self.isChannel = isChannel
         self.isPlaylist = isPlaylist
-        self.supportShortcuts = supportShortcuts
+        self.supports_shortcuts = supports_shortcuts
         self.playlistData = playlistData
         self.playlistItems = playlistItems
         if not self.isChannel:
@@ -149,29 +148,29 @@ class VideosList(List):
         self.downloadButton.Disable()
 
         def onVideoDownload(event):
-            onDownload(event, self.videoData["videoTitle"],
-                       self.videoData["id"], self.GetParent(), self)
+            self.window.on_download(event, self.videoData["videoTitle"],
+                                    self.videoData["id"], self.GetParent(), self)
         self.downloadButton.Bind(wx.EVT_BUTTON, onVideoDownload)
         self.videosData = []
         self.videoData = None
 
         def onVideoSelect(event, videosList, videoData, videosData=None, isPlaylist=False, playlistData=None, playlistItems=None):
-            if window.video_is_loading:
+            if self.window.video_is_loading:
                 speak("Aguarde. Outro vídeo já está carregando.")
                 return
             speak("Carregando vídeo...")
-            window.video_is_loading = True
+            self.window.video_is_loading = True
             currentWindow = videosList.GetParent()
             try:
-                DmThread(target=window.playVideo, args=(currentWindow, self.videoData, self.videosData,
-                                                        self.isPlaylist, False, self.playlistData, self.playlistItems)).start()
+                DmThread(target=self.window.playVideo, args=(currentWindow, self.videoData, self.videosData,
+                                                             self.isPlaylist, False, self.playlistData, self.playlistItems)).start()
             except Exception as e:
                 wx.MessageBox(
                     f"Não foi possível carregar o vídeo solicitado. Isso pode ocorrer se o componente YT-DLP não estiver atualizado ou se o vídeo for uma live ou estreia. Tente abrir este vídeo no navegador padrão pressionando as teclas CTRL+Enter. {traceback.format_exc()}", "Erro ao carregar o vídeo", wx.OK | wx.ICON_ERROR, currentWindow)
                 return
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, lambda event: onVideoSelect(
             event, self, self.videoData, self.videosData, self.isPlaylist))
-        if self.supportShortcuts:
+        if self.supports_shortcuts:
             dialog = self.GetParent()
             dialog.Bind(wx.EVT_CHAR_HOOK, lambda event: onVideoChar(
                 event, self.videoData))
@@ -185,7 +184,7 @@ class VideosList(List):
         self.Bind(wx.EVT_LIST_ITEM_FOCUSED, onVideoChange)
 
     def addVideo(self, videoData):
-        if not window.getSetting("fix_names"):
+        if not self.window.getSetting("fix_names"):
             videoTitle = videoData["videoTitle"]
             channelTitle = videoData["channelTitle"]
         else:
@@ -266,7 +265,7 @@ def onQuotaExceeded(event):
     quotaDial.ShowModal()
 
 
-SendEvent, EVT_SENT = NewEvent()
+single, EVT_SENT = NewEvent()
 logedIn = False
 
 
@@ -354,11 +353,9 @@ def createFile(fileName):
 
 
 def killProgram():
-    taskkillInfo = subprocess.STARTUPINFO()
-    taskkillInfo.dwFlags = subprocess.STARTF_USESHOWWINDOW
     execName = os.path.basename(sys.executable)
     taskkillString = f"taskkill /f /im {execName}"
-    subprocess.Popen(taskkillString, startupinfo=taskkillInfo)
+    subprocess.Popen(taskkillString, creationflags=subprocess.CREATE_NO_WINDOW)
     sys.exit()
 
 
@@ -615,848 +612,6 @@ def UrlIsValid(videoUrl):
     return False
 
 
-def loadPlaylist(currentWindow, playlistData):
-    playlistItems = yt.playlistItems().list(
-        part="snippet,status", playlistId=playlistData["id"], maxResults=50).execute()
-    videoIds = []
-    for playlistItem in playlistItems.get("items", []):
-        if playlistItem["status"]["privacyStatus"] == "private":
-            continue
-        videoIds.append(playlistItem["snippet"]["resourceId"]["videoId"])
-    videoIdsStr = joinIds(videoIds)
-    videos = yt.videos().list(part="id,snippet,statistics,contentDetails",
-                              id=videoIdsStr).execute()
-    currentWindow.Bind(EVT_LOAD, onPlaylistLoaded)
-    wx.PostEvent(currentWindow, LoadEvent(currentWindow=currentWindow,
-                 videos=videos, playlistData=playlistData, playlistItems=playlistItems))
-
-
-def onPlaylistLoaded(event):
-    currentWindow = event.currentWindow
-    videos = event.videos
-    playlistData = event.playlistData
-    playlistItems = event.playlistItems
-    playlistDial = Dialog(
-        currentWindow, title="Playlist "+playlistData["title"])
-    playlistClose = wx.Button(playlistDial, wx.ID_CANCEL, "Voltar")
-    playlistClose.Bind(wx.EVT_BUTTON, onWindowClose)
-    videosLabel = wx.StaticText(playlistDial, label="&Vídeos da playlist")
-    videosList = VideosList(playlistDial, title="Vídeos da playlist",
-                            isPlaylist=True, playlistData=playlistData, playlistItems=playlistItems)
-    videosList.SetFocus()
-    videosData = []
-    for video in videos.get("items", []):
-        videoData = getVideoData(video)
-        videosData.append(videoData)
-        videosList.addVideo(videoData)
-    downloadPlaylist = LinkButton(playlistDial, mainLabel="Bai&xar playlist")
-
-    def onPlaylistDownload(event):
-        downloadDial = Dialog(
-            playlistDial, title="Baixar playlist", closePrev=False)
-        folderLabel = wx.StaticText(
-            downloadDial, label="&Pasta para salvar os vídeos (será criada uma pasta com o nome da playlist dentro dela)")
-        folderBox = TextCtrl(downloadDial, style=wx.TE_DONTWRAP)
-        defaultFolder = window.getSettingOrigin("download_folder")
-        defaultFormat = window.getSettingOrigin("default_format")
-        folderBox.SetValue(defaultFolder)
-        formatLabel = wx.StaticText(downloadDial, label="&Formato dos vídeos")
-        formatBox = wx.ComboBox(
-            downloadDial, choices=formatList, value=defaultFormat)
-        confirmButton = wx.Button(downloadDial, label="&Baixar")
-        cancelButton = wx.Button(downloadDial, wx.ID_CANCEL, "&Cancelar")
-        cancelButton.Bind(wx.EVT_BUTTON, onWindowClose)
-
-        def onConfirm(event):
-            folder = folderBox.GetValue()
-            if folder and not os.path.isdir(folder):
-                if not wantToCreate(folder):
-                    return
-            playlistTitle = fixChars(playlistData["title"])
-            newFolder = os.path.join(folder, playlistTitle)
-            os.makedirs(newFolder, exist_ok=True)
-            format = formatBox.GetValue()
-            window.downloadCanceled = False
-            window.videosWithError = []
-            downloadingDial = Dialog(
-                downloadDial, title="Baixando playlist", closePrev=False)
-            downloadProgress = wx.Gauge(downloadingDial)
-
-            def onPercentChange(event):
-                downloadProgress.SetValue(event.percentage)
-            window.Bind(EVT_PERCENT, onPercentChange)
-
-            def onConvPercentChange(event):
-                downloadProgress.SetValue(event.percentage)
-            window.Bind(EVT_CONV_PERCENT, onConvPercentChange)
-            cancelDownload = wx.Button(downloadingDial, label="&Cancelar")
-
-            def onCancel(event):
-                window.downloadCanceled = True
-                downloadingDial.Destroy()
-                downloadDial.Destroy()
-            cancelDownload.Bind(wx.EVT_BUTTON, onCancel)
-
-            def onDownloadsCompleted(event):
-                window.playSound("downloaded")
-                if window.videosWithError:
-                    warningDial = Dialog(
-                        downloadingDial, title="Aviso", closePrev=False)
-                    warningText = wx.StaticText(
-                        warningDial, label="Alguns vídeos desta playlist não puderam ser baixados. Isso pode ter ocorrido devido a problemas de conexão, ou algo relacionado a esses vídeos específicos. Se desejar tentar baixá-los novamente, clique em baixar playlist ao fechar este diálogo.")
-                    warningBoxText = wx.StaticText(
-                        warningDial, label="Vídeos não baixados")
-                    warningBox = TextCtrl(
-                        warningDial, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_DONTWRAP)
-                    window.addListItems(warningBox, window.videosWithError)
-                    warningClose = wx.Button(
-                        warningDial, wx.ID_CANCEL, "fechar")
-                    warningDial.ShowModal()
-                downloadingDial.Destroy()
-                downloadDial.Destroy()
-            window.Bind(EVT_DOWNLOAD, onDownloadsCompleted)
-
-            def getPlaylistVideos():
-                videoResults = yt.playlistItems().list(
-                    part="snippet,status", playlistId=playlistData["id"], maxResults=50).execute()
-                downloadVideos(videoResults, format, newFolder)
-                while "nextPageToken" in videoResults and videoResults["nextPageToken"]:
-                    videoResults = yt.playlistItems().list(part="snippet,status",
-                                                           playlistId=playlistData["id"], maxResults=50, pageToken=videoResults["nextPageToken"]).execute()
-                    downloadVideos(videoResults, format, newFolder)
-                if not window.downloadCanceled:
-                    wx.PostEvent(window, DownloadEvent())
-            window.playSound("downloading")
-            DmThread(target=getPlaylistVideos).start()
-            downloadingDial.Show()
-        folderBox.Bind(wx.EVT_TEXT_ENTER, onConfirm)
-        formatBox.Bind(wx.EVT_TEXT_ENTER, onConfirm)
-        confirmButton.Bind(wx.EVT_BUTTON, onConfirm)
-        downloadDial.Show()
-    downloadPlaylist.Bind(wx.EVT_BUTTON, onPlaylistDownload)
-    loadMore = wx.Button(playlistDial, label="&Carregar mais")
-    if not "nextPageToken" in playlistItems:
-        loadMore.Disable()
-
-    def onLoadMore(event):
-        speak("Carregando mais...")
-
-        def loadMoreItems():
-            nextPageToken = playlistItems["nextPageToken"]
-            newPlaylistItems = yt.playlistItems().list(part="snippet,status",
-                                                       playlistId=playlistData["id"], maxResults=50, pageToken=nextPageToken).execute()
-            videoIds = []
-            for playlistItem in newPlaylistItems.get("items", []):
-                videoIds.append(
-                    playlistItem["snippet"]["resourceId"]["videoId"])
-            videoIdsStr = joinIds(videoIds)
-            newVideos = yt.videos().list(
-                part="id,snippet,statistics,contentDetails", id=videoIdsStr).execute()
-            playlistDial.Bind(EVT_LOAD, onMoreItemsLoaded)
-            wx.PostEvent(playlistDial, LoadEvent(
-                newVideos=newVideos, newPlaylistItems=newPlaylistItems))
-        DmThread(target=loadMoreItems).start()
-
-        def onMoreItemsLoaded(event):
-            nonlocal playlistItems
-            nonlocal videos
-            playlistItems = event.newPlaylistItems
-            videos = event.newVideos
-            for video in videos.get("items", []):
-                videoData = getVideoData(video)
-                videosData.append(videoData)
-                videosList.addVideo(videoData)
-            speak("Vídeos carregados.")
-            if not "nextPageToken" in playlistItems:
-                speak("Fim dos vídeos.")
-                loadMore.Disable()
-                videosList.SetFocus()
-    loadMore.Bind(wx.EVT_BUTTON, onLoadMore)
-
-    def onNewVideosAdded(event):
-        videosData = event.videosData
-        playlistItems = event.playlistItems
-        for videoData in videosData:
-            videosList.addVideo(videoData)
-        if not "nextPageToken" in playlistItems:
-            loadMore.Disable()
-    playlistDial.Bind(EVT_NEW_VIDEOS, onNewVideosAdded)
-
-    def onVideoClosed(event):
-        videoPos = event.videoPos
-        videosList.Focus(videoPos)
-    playlistDial.Bind(EVT_VIDEO_CLOSE, onVideoClosed)
-    playlistDial.Show()
-
-
-def loadChannel(channelId, currentWindow):
-    channelResults = yt.channels().list(
-        part="id,snippet,statistics", id=channelId).execute()
-    channel = channelResults["items"][0]
-    channelData = getChannelData(channel)
-    newDate = datetime.now()
-    newDate = convertTimezone(newDate)
-    newDateString = isodate.strftime(newDate, "%Y-%m-%dT%H:%M:%SZ")
-    prevDate = newDate-dateutil.relativedelta.relativedelta(months=6)
-    prevDateString = isodate.strftime(prevDate, "%Y-%m-%dT%H:%M:%SZ")
-    videoResults = yt.search().list(part="id", channelId=channelId, type="video",
-                                    order="date", maxResults=50, publishedAfter=prevDateString).execute()
-    videoIds = []
-    for result in videoResults.get("items", []):
-        videoIds.append(result["id"]["videoId"])
-    videoIdsStr = joinIds(videoIds)
-    videos = yt.videos().list(part="id,snippet,statistics,contentDetails",
-                              id=videoIdsStr).execute()
-    while not len(videoResults["items"]) >= 10:
-        newDate = prevDate
-        newDateString = prevDateString
-        prevDate = newDate-dateutil.relativedelta.relativedelta(months=6)
-        prevDateString = isodate.strftime(prevDate, "%Y-%m-%dT%H:%M:%SZ")
-        if (prevDate.year < channelData["createdAt"].year) or (prevDate.year == channelData["createdAt"].year and prevDate.month < channelData["createdAt"].month):
-            break
-        moreVideoResults = yt.search().list(part="id", channelId=channelId, type="video", order="date",
-                                            maxResults=50, publishedAfter=prevDateString, publishedBefore=newDateString).execute()
-        moreVideoIds = []
-        for result in moreVideoResults.get("items", []):
-            moreVideoIds.append(result["id"]["videoId"])
-        moreVideoIdsStr = joinIds(moreVideoIds)
-        moreVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
-                                      id=moreVideoIdsStr).execute()
-        videoResults["items"].extend(moreVideoResults["items"])
-        videoResults["nextPageToken"] = moreVideoResults.get("nextPageToken")
-        videos["items"].extend(moreVideos["items"])
-    currentWindow.Bind(EVT_LOAD, onChannelLoaded)
-    wx.PostEvent(currentWindow, LoadEvent(currentWindow=currentWindow, videos=videos, videoResults=videoResults,
-                 channelData=channelData, newDate=newDate, newDateString=newDateString, prevDate=prevDate, prevDateString=prevDateString))
-
-
-def onChannelLoaded(event):
-    videos = event.videos
-    videoResults = event.videoResults
-    sortMethod = "date"
-    searchTerm = ""
-    channelData = event.channelData
-    newDate = event.newDate
-    newDateString = event.newDateString
-    prevDate = event.prevDate
-    prevDateString = event.prevDateString
-    videosData = []
-    channelId = channelData["id"]
-    currentWindow = event.currentWindow
-    if not window.getSetting("fix_names"):
-        channelTitle = channelData["channelTitle"]
-    else:
-        channelTitle = channelData["channelTitle"].title()
-    channelDial = Dialog(currentWindow, title=channelTitle)
-    channelClose = wx.Button(channelDial, wx.ID_CANCEL, "Voltar")
-    channelClose.Bind(wx.EVT_BUTTON, onWindowClose)
-    videosLabel = wx.StaticText(channelDial, label="&Vídeos do canal")
-    videosList = VideosList(
-        channelDial, title="&Vídeos do canal", isChannel=True)
-    videosList.SetFocus()
-    for video in videos.get("items", []):
-        try:
-            videoData = getVideoData(video)
-        except Exception:
-            continue
-        videosData.append(videoData)
-        videosList.addVideo(videoData)
-    loadMoreButton = wx.Button(channelDial, label="&Carregar mais")
-    sortBy = LinkButton(channelDial, mainLabel="&Ordenar por: mais recente")
-    infoLabel = wx.StaticText(channelDial, label="In&formações do canal")
-    infoBox = TextCtrl(channelDial, style=wx.TE_READONLY |
-                       wx.TE_MULTILINE | wx.TE_DONTWRAP)
-    if channelData["subscriberCount"] != "1":
-        infoBox.AppendText(channelData["subscriberCount"]+" inscritos")
-    else:
-        infoBox.AppendText(channelData["subscriberCount"]+" inscrito")
-    if channelData["videoCount"] != "1":
-        infoBox.AppendText(f"\n{channelData['videoCount']} vídeos")
-    else:
-        infoBox.AppendText(f"\n{channelData['videoCount']} vídeo")
-    publishedAtString = channelData["createdAt"].strftime(
-        "%d/%m/%Y, às %#H:%M.")
-    infoBox.AppendText(f"\nCriado em: {publishedAtString}")
-    infoBox.SetInsertionPoint(0)
-    searchLabel = wx.StaticText(channelDial, label="&Pesquisar no canal")
-    searchBox = TextCtrl(channelDial, style=wx.TE_DONTWRAP)
-
-    def onChannelSearch(event):
-        speak("Pesquisando...")
-
-        def searchChannel():
-            nonlocal searchTerm
-            searchTerm = searchBox.GetValue()
-            if searchTerm:
-                searchResults = yt.search().list(part="id", q=searchTerm,
-                                                 channelId=channelData["id"], type="video", maxResults=50, order="relevance").execute()
-            else:
-                searchResults = yt.search().list(part="id",
-                                                 channelId=channelData["id"], q="", type="video", maxResults=50, order=sortMethod).execute()
-            videoIds = []
-            for result in searchResults.get("items", []):
-                if result.get("id", {}).get("videoId", 0):
-                    videoIds.append(result["id"]["videoId"])
-            videoIdsStr = joinIds(videoIds)
-            videos = yt.videos().list(part="id,snippet,statistics,contentDetails",
-                                      id=videoIdsStr).execute()
-            channelDial.Bind(EVT_LOAD, onSearchLoaded)
-            wx.PostEvent(channelDial, LoadEvent(
-                searchResults=searchResults, videos=videos))
-        DmThread(target=searchChannel).start()
-
-        def onSearchLoaded(event):
-            videosList.clear()
-            for video in event.videos.get("items", []):
-                try:
-                    videoData = getVideoData(video)
-                except Exception:
-                    continue
-                videosData.append(videoData)
-                videosList.addVideo(videoData)
-            speak("Pesquisa carregada")
-            searchBox.Clear()
-            videosList.SetFocus()
-    searchBox.Bind(wx.EVT_TEXT_ENTER, onChannelSearch)
-
-    def onLoadMore(event):
-        speak("Carregando mais...")
-
-        def loadMore():
-            nonlocal newDate
-            nonlocal newDateString
-            nonlocal prevDate
-            nonlocal prevDateString
-            if sortMethod == "date" and not searchTerm:
-                if "nextPageToken" in videoResults and videoResults["nextPageToken"]:
-                    nextPageToken = videoResults["nextPageToken"]
-                    newVideoResults = yt.search().list(part="id", channelId=channelId, type="video", order="date", maxResults=50,
-                                                       publishedAfter=prevDateString, publishedBefore=newDateString, pageToken=nextPageToken).execute()
-                    newVideoIds = []
-                    for result in newVideoResults.get("items", []):
-                        newVideoIds.append(result["id"]["videoId"])
-                    newVideoIdsStr = joinIds(newVideoIds)
-                    newVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
-                                                 id=newVideoIdsStr).execute()
-                else:
-                    newDate = prevDate
-                    newDateString = prevDateString
-                    prevDate = newDate - \
-                        dateutil.relativedelta.relativedelta(months=6)
-                    prevDateString = isodate.strftime(
-                        prevDate, "%Y-%m-%dT%H:%M:%SZ")
-                    newVideoResults = yt.search().list(part="id", channelId=channelId, q=searchTerm, type="video",
-                                                       order="date", maxResults=50, publishedAfter=prevDateString, publishedBefore=newDateString).execute()
-                    newVideoIds = []
-                    for result in newVideoResults.get("items", []):
-                        newVideoIds.append(result["id"]["videoId"])
-                    newVideoIdsStr = joinIds(newVideoIds)
-                    newVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
-                                                 id=newVideoIdsStr).execute()
-                    while not len(newVideoResults["items"]) >= 10:
-                        newDate = prevDate
-                        newDateString = prevDateString
-                        prevDate = newDate - \
-                            dateutil.relativedelta.relativedelta(months=6)
-                        prevDateString = isodate.strftime(
-                            prevDate, "%Y-%m-%dT%H:%M:%SZ")
-                        if (prevDate.year < channelData["createdAt"].year) or (prevDate.year == channelData["createdAt"].year and prevDate.month < channelData["createdAt"].month):
-                            if newVideoResults["items"]:
-                                break
-                            else:
-                                speak("Não há mais vídeos a serem carregados")
-                                loadMoreButton.Disable()
-                                return
-                        moreVideoResults = yt.search().list(part="id", channelId=channelId, type="video", order="date",
-                                                            maxResults=50, publishedAfter=prevDateString, publishedBefore=newDateString).execute()
-                        moreVideoIds = []
-                        for result in moreVideoResults.get("items", []):
-                            moreVideoIds.append(result["id"]["videoId"])
-                        moreVideoIdsStr = joinIds(moreVideoIds)
-                        moreVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
-                                                      id=moreVideoIdsStr).execute()
-                        newVideoResults["items"].extend(
-                            moreVideoResults["items"])
-                        newVideoResults["nextPageToken"] = moreVideoResults.get(
-                            "nextPageToken")
-                        newVideos["items"].extend(moreVideos["items"])
-            elif sortMethod == "reverseDate" and not searchTerm:
-                prevDate = newDate
-                newDate = prevDate + \
-                    dateutil.relativedelta.relativedelta(months=6)
-                newDateString = isodate.strftime(newDate, "%Y-%m-%dT%H:%M:%SZ")
-                newVideoResults = yt.search().list(part="id", channelId=channelId, type="video", order="date",
-                                                   maxResults=50, publishedBefore=newDateString, publishedAfter=prevDateString).execute()
-                newVideoIds = []
-                for result in newVideoResults.get("items", []):
-                    newVideoIds.append(result["id"]["videoId"])
-                newVideoIdsStr = joinIds(newVideoIds)
-                newVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
-                                             id=newVideoIdsStr).execute()
-                while not len(newVideoResults["items"]) >= 10:
-                    prevDate = newDate
-                    newDate = prevDate + \
-                        dateutil.relativedelta.relativedelta(months=6)
-                    newDateString = isodate.strftime(
-                        newDate, "%Y-%m-%dT%H:%M:%SZ")
-                    currentDate = datetime.now()
-                    if (newDate.year > currentDate.year) or (newDate.year == currentDate.year and newDate.month > currentDate.month):
-                        if newVideoResults["items"]:
-                            break
-                        else:
-                            speak("Não há mais vídeos a serem carregados")
-                            loadMoreButton.Disable()
-                            return
-                    moreVideoResults = yt.search().list(part="id", channelId=channelId, type="video", order="date",
-                                                        maxResults=50, publishedBefore=newDateString, published_after=prevDateString).execute()
-                    moreVideoIds = []
-                    for result in moreVideoResults.get("items", []):
-                        moreVideoIds.append(result["id"]["videoId"])
-                    moreVideoIdsStr = joinIds(moreVideoIds)
-                    moreVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
-                                                  id=moreVideoIdsStr).execute()
-                    newVideoResults["items"].extend(moreVideoResults["items"])
-                    newVideoResults["nextPageToken"] = moreVideoResults.get(
-                        "nextPageToken")
-                    newVideos["items"].extend(moreVideos["items"])
-                while "nextPageToken" in newVideoResults and newVideoResults["nextPageToken"]:
-                    nextPageToken = newVideoResults["nextPageToken"]
-                    moreVideoResults = yt.search().list(part="id", channelId=channelId, type="video", order="date", maxResults=50,
-                                                        publishedAfter=prevDateString, publishedBefore=newDateString, pageToken=nextPageToken).execute()
-                    moreVideoIds = []
-                    for result in moreVideoResults.get("items", []):
-                        moreVideoIds.append(result["id"]["videoId"])
-                    moreVideoIdsStr = joinIds(moreVideoIds)
-                    moreVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
-                                                  id=moreVideoIdsStr).execute()
-                    newVideoResults["items"].extend(moreVideoResults["items"])
-                    newVideoResults["nextPageToken"] = moreVideoResults.get(
-                        "nextPageToken")
-                    newVideos["items"].extend(moreVideos["items"])
-                newVideoResults["items"].reverse()
-                newVideos["items"].reverse()
-            else:
-                if searchTerm:
-                    newVideoResults = yt.search().list(part="id", channelId=channelId, q=searchTerm,
-                                                       type="video", order="date", maxResults=50).execute()
-                else:
-                    newVideoResults = yt.search().list(part="id", channelId=channelId, type="video",
-                                                       order=sortMethod, maxResults=50, pageToken=videoResults["nextPageToken"]).execute()
-                newVideoIds = []
-                for result in newVideoResults.get("items", []):
-                    newVideoIds.append(result["id"]["videoId"])
-                newVideoIdsStr = joinIds(newVideoIds)
-                newVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
-                                             id=newVideoIdsStr).execute()
-            channelDial.Bind(EVT_LOAD, onNewVideosLoaded)
-            wx.PostEvent(channelDial, LoadEvent(
-                newVideos=newVideos, newVideoResults=newVideoResults))
-        DmThread(target=loadMore).start()
-
-        def onNewVideosLoaded(event):
-            newVideos = event.newVideos
-            newVideoResults = event.newVideoResults
-            nonlocal videoResults
-            videoResults = newVideoResults
-            for video in newVideos.get("items", []):
-                try:
-                    videoData = getVideoData(video)
-                except Exception:
-                    continue
-                videosData.append(videoData)
-                videosList.addVideo(videoData)
-            speak("Vídeos carregados.")
-            if sortMethod == "date":
-                if newDate.year < channelData["createdAt"].year or newDate.year == channelData["createdAt"].year and newDate.month < channelData["createdAt"].month:
-                    speak("Fim dos vídeos")
-                    loadMoreButton.Disable()
-    loadMoreButton.Bind(wx.EVT_BUTTON, onLoadMore)
-
-    def onSort(event):
-        if searchTerm:
-            wx.MessageBox("Não é possível ordenar os vídeos no momento porque você está no modo de pesquisa. Para voltar ao modo padrão, pressione alt+p ou vá para o campo de pesquisa e pressione enter, deixando-o em branco.",
-                          "Não é possível ordenar", wx.OK | wx.ICON_ERROR, channelDial)
-            return
-        sortMenu = wx.Menu()
-        recent = sortMenu.Append(1, "Mais &recente")
-        popular = sortMenu.Append(2, "Mais &populares")
-        old = sortMenu.Append(3, "Mais &antigo")
-
-        def sort(sortMethod):
-            nonlocal newDate
-            nonlocal newDateString
-            nonlocal prevDate
-            nonlocal prevDateString
-            videosList.clear()
-            if sortMethod == "date":
-                newDate = datetime.now()
-                newDate = convertTimezone(newDate)
-                newDateString = isodate.strftime(newDate, "%Y-%m-%dT%H:%M:%SZ")
-                prevDate = newDate - \
-                    dateutil.relativedelta.relativedelta(months=6)
-                prevDateString = isodate.strftime(
-                    prevDate, "%Y-%m-%dT%H:%M:%SZ")
-                videoResults = yt.search().list(part="id", channelId=channelId, type="video",
-                                                order="date", maxResults=50, publishedAfter=prevDateString).execute()
-                videoIds = []
-                for result in videoResults.get("items", []):
-                    videoIds.append(result["id"]["videoId"])
-                videoIdsStr = joinIds(videoIds)
-                videos = yt.videos().list(part="id,snippet,statistics,contentDetails",
-                                          id=videoIdsStr).execute()
-                while not len(videoResults["items"]) >= 10:
-                    newDate = prevDate
-                    newDateString = prevDateString
-                    prevDate = newDate - \
-                        dateutil.relativedelta.relativedelta(months=6)
-                    prevDateString = isodate.strftime(
-                        prevDate, "%Y-%m-%dT%H:%M:%SZ")
-                    if (prevDate.year < channelData["createdAt"].year) or (prevDate.year == channelData["createdAt"].year and prevDate.month < channelData["createdAt"].month):
-                        break
-                    moreVideoResults = yt.search().list(part="id", channelId=channelId, type="video", order="date",
-                                                        maxResults=50, publishedAfter=prevDateString, publishedBefore=newDateString).execute()
-                    moreVideoIds = []
-                    for result in moreVideoResults.get("items", []):
-                        moreVideoIds.append(result["id"]["videoId"])
-                    moreVideoIdsStr = joinIds(moreVideoIds)
-                    moreVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
-                                                  id=moreVideoIdsStr).execute()
-                    videoResults["items"].extend(moreVideoResults["items"])
-            elif sortMethod == "reverseDate":
-                prevDate = channelData["createdAt"]
-                prevDateString = isodate.strftime(
-                    prevDate, "%Y-%m-%dT%H:%M:%SZ")
-                newDate = prevDate + \
-                    dateutil.relativedelta.relativedelta(months=6)
-                newDateString = isodate.strftime(newDate, "%Y-%m-%dT%H:%M:%SZ")
-                videoResults = yt.search().list(part="id", channelId=channelId, type="video",
-                                                order="date", maxResults=50, publishedBefore=newDateString).execute()
-                videoIds = []
-                for result in videoResults.get("items", []):
-                    videoIds.append(result["id"]["videoId"])
-                videoIdsStr = joinIds(videoIds)
-                videos = yt.videos().list(part="id,snippet,statistics,contentDetails",
-                                          id=videoIdsStr).execute()
-                while not len(videoResults["items"]) >= 10:
-                    prevDate = newDate
-                    newDate = prevDate + \
-                        dateutil.relativedelta.relativedelta(months=6)
-                    newDateString = isodate.strftime(
-                        newDate, "%Y-%m-%dT%H:%M:%SZ")
-                    currentDate = datetime.now()
-                    if (newDate.year > currentDate.year) or (newDate.year == currentDate.year and newDate.month > currentDate.month):
-                        break
-                    moreVideoResults = yt.search().list(part="id", channelId=channelId, type="video", order="date",
-                                                        maxResults=50, publishedBefore=newDateString, publishedAfter=prevDateString).execute()
-                    moreVideoIds = []
-                    for result in moreVideoResults.get("items", []):
-                        moreVideoIds.append(result["id"]["videoId"])
-                    moreVideoIdsStr = joinIds(moreVideoIds)
-                    moreVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
-                                                  id=moreVideoIdsStr).execute()
-                    videoResults["items"].extend(moreVideoResults["items"])
-                    videoResults["nextPageToken"] = moreVideoResults.get(
-                        "nextPageToken")
-                    videos["items"].extend(moreVideos["items"])
-                while "nextPageToken" in videoResults and videoResults["nextPageToken"]:
-                    nextPageToken = videoResults["nextPageToken"]
-                    newVideoResults = yt.search().list(part="id", channelId=channelId, type="video", order="date", maxResults=50,
-                                                       publishedAfter=prevDateString, publishedBefore=newDateString, pageToken=nextPageToken).execute()
-                    newVideoIds = []
-                    for result in newVideoResults.get("items", []):
-                        newVideoIds.append(result["id"]["videoId"])
-                    newVideoIdsStr = joinIds(newVideoIds)
-                    newVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
-                                                 id=newVideoIdsStr).execute()
-                    videoResults["items"].extend(newVideoResults["items"])
-                    videoResults["nextPageToken"] = newVideoResults.get(
-                        "nextPageToken")
-                    videos["items"].extend(newVideos["items"])
-                videoResults["items"].reverse()
-                videos["items"].reverse()
-            else:
-                videoResults = yt.search().list(part="id", channelId=channelId, q=searchTerm,
-                                                type="video", order=sortMethod, maxResults=50).execute()
-                videoIds = []
-                for result in videoResults.get("items", []):
-                    videoIds.append(result["id"]["videoId"])
-                videoIdsStr = joinIds(videoIds)
-                videos = yt.videos().list(part="id,snippet,statistics,contentDetails",
-                                          id=videoIdsStr).execute()
-            channelDial.Bind(EVT_LOAD, onSortLoaded)
-            wx.PostEvent(channelDial, LoadEvent(sortedVideos=videos))
-
-        def onSortSelected(event):
-            nonlocal sortMethod
-            loadMoreButton.Enable(True)
-            itemId = event.GetId()
-            menuItem = sortMenu.FindItemById(itemId)
-            if itemId == 1:
-                sortMethod = "date"
-            elif itemId == 2:
-                sortMethod = "viewCount"
-            else:
-                sortMethod = "reverseDate"
-            itemLabel = menuItem.GetItemLabelText()
-            sortBy.SetLabel("&Ordenar por: "+itemLabel)
-            if sortMethod == "date" or sortMethod == "viewCount":
-                DmThread(target=sort, args=(sortMethod,)).start()
-            else:
-                DmThread(target=sort, args=("reverseDate",)).start()
-        sortMenu.Bind(wx.EVT_MENU, onSortSelected)
-
-        def onSortLoaded(event):
-            videos = event.sortedVideos
-            for video in videos.get("items", []):
-                videoData = getVideoData(video)
-                videosData.append(videoData)
-                videosList.addVideo(videoData)
-            speak("Alerta vídeos ordenados.", interrupt=True)
-            videosList.SetFocus()
-        channelDial.PopupMenu(sortMenu)
-    sortBy.Bind(wx.EVT_BUTTON, onSort)
-    if not channelData["isSubscribed"]:
-        subscribe = wx.Button(
-            channelDial, label=f"&Inscreva-se em {channelData['channelTitle']}")
-    else:
-        subscribe = wx.Button(
-            channelDial, label=f"Cancelar &inscrição de {channelData['channelTitle']}")
-    subscribe.Bind(
-        wx.EVT_BUTTON, lambda event: onSubscribe(event, channelData))
-    downloadChannel = LinkButton(channelDial, mainLabel="Bai&xar canal")
-    aboutLabel = wx.StaticText(channelDial, label="&Sobre este canal")
-    aboutBox = TextCtrl(channelDial, style=wx.TE_MULTILINE |
-                        wx.TE_READONLY | wx.TE_DONTWRAP, value=channelData["about"])
-    showPlaylists = LinkButton(channelDial, mainLabel="Play&lists")
-
-    def onPlaylists(event):
-        speak("Carregando playlists...")
-
-        def loadChannelPlaylists():
-            playlists = yt.playlists().list(part="id,snippet,contentDetails",
-                                            channelId=channelData["id"], maxResults=50).execute()
-            channelDial.Bind(EVT_LOAD, onPlaylistsLoaded)
-            wx.PostEvent(channelDial, LoadEvent(
-                playlists=playlists, channelData=channelData))
-        DmThread(target=loadChannelPlaylists).start()
-
-        def onPlaylistsLoaded(event):
-            playlists = event.playlists
-            channelData = event.channelData
-            playlistsDial = Dialog(
-                channelDial, title="Playlists de "+channelData["channelTitle"])
-            playlistsClose = wx.Button(playlistsDial, wx.ID_CANCEL, "Voltar")
-            playlistsClose.Bind(wx.EVT_BUTTON, onWindowClose)
-            playlistsLabel = wx.StaticText(playlistsDial, label="&Playlists")
-            playlistsList = List(playlistsDial, title="Playlists")
-            playlistsList.SetFocus()
-            playlistsData = []
-            for playlist in playlists.get("items", []):
-                playlistData = getPlaylistData(playlist)
-                playlistsData.append(playlistData)
-                addPlaylist(playlistsList, playlistData)
-
-            def onPlaylistSelected(event):
-                speak("Carregando playlist...")
-                item = event.GetIndex()
-                playlistData = playlistsData[item]
-                DmThread(target=loadPlaylist, args=(
-                    playlistsDial, playlistData,)).start()
-            playlistsList.Bind(wx.EVT_LIST_ITEM_ACTIVATED, onPlaylistSelected)
-            loadMore = wx.Button(playlistsDial, label="&Carregar mais")
-            if not "nextPageToken" in playlists:
-                loadMore.Disable()
-
-            def onLoadMore(event):
-                speak("Carregando mais...")
-
-                def loadMorePlaylists():
-                    nextPageToken = playlists["nextPageToken"]
-                    newPlaylists = yt.playlists().list(part="id,snippet,contentDetails",
-                                                       channelId=channelData["id"], maxResults=50, pageToken=nextPageToken).execute()
-                    playlistsDial.Bind(EVT_LOAD, onMorePlaylistsLoaded)
-                    wx.PostEvent(playlistsDial, LoadEvent(
-                        newPlaylists=newPlaylists))
-                DmThread(target=loadMorePlaylists).start()
-
-                def onMorePlaylistsLoaded(event):
-                    nonlocal playlists
-                    playlists = event.newPlaylists
-                    for playlist in playlists.get("items", []):
-                        playlistData = getPlaylistData(playlist)
-                        playlistsData.append(playlistData)
-                        addPlaylist(playlistsList, playlistData)
-                    speak("Playlists carregadas.", interrupt=True)
-                    if not "nextPageToken" in playlists:
-                        speak("Fim das playlists.")
-                        loadMore.Disable()
-                        playlistsList.SetFocus()
-            loadMore.Bind(wx.EVT_BUTTON, onLoadMore)
-            playlistsDial.Show()
-    showPlaylists.Bind(wx.EVT_BUTTON, onPlaylists)
-    channelSettings = LinkButton(
-        channelDial, mainLabel="Co&nfigurações do canal")
-
-    def onChannelSettings(event):
-        channelId = channelData["id"]
-        channelSetDial = Dialog(
-            channelDial, title="Configurações do canal "+channelData["channelTitle"])
-        defaultSpeedLabel = wx.StaticText(
-            channelSetDial, label="Velocidad&e padrão para os vídeos do canal")
-        speedsList = ["Padrão"]+list(videoSpeeds.keys())
-        defaultSpeedBox = wx.ComboBox(
-            channelSetDial, choices=speedsList, style=wx.CB_READONLY)
-        speedValue = window.getChannelSettingOrigin("default_speed", channelId)
-        if speedValue == "default":
-            defaultSpeedBox.SetValue("Padrão")
-        else:
-            defaultSpeedBox.SetValue(speedValue)
-        notifBox = wx.CheckBox(
-            channelSetDial, label="Ativar &notificações de novos vídeos para este canal (se inscrito)")
-        notifBox.SetValue(window.getChannelSetting("notifications", channelId))
-        transcriptLanguageLabel = wx.StaticText(
-            channelSetDial, label="Idioma para as trans&crições de vídeos do canal")
-        channelLanguageList = ["Padrão"] + languageList
-        transcriptLanguageBox = wx.ComboBox(
-            channelSetDial, choices=channelLanguageList, style=wx.CB_READONLY)
-        languageCode = window.getChannelSettingOrigin(
-            "default_transcript_language", channelId)
-        if languageCode == "default":
-            languageName = "Padrão"
-        else:
-            languageName = list(languageDict.keys())[list(
-                languageDict.values()).index(languageCode)]
-        transcriptLanguageBox.SetStringSelection(languageName)
-        ok = wx.Button(channelSetDial, wx.ID_OK, "Ok")
-
-        def onOk(event):
-            if not window.conf.has_section(channelId):
-                window.conf.add_section(channelId)
-            newSpeedValue = defaultSpeedBox.GetValue()
-            if newSpeedValue == "Padrão":
-                window.setChannelSettingOrigin(
-                    "default_speed", "default", channelId)
-            else:
-                window.setChannelSettingOrigin(
-                    "default_speed", newSpeedValue, channelId)
-            window.setChannelSetting(
-                "notifications", notifBox.GetValue(), channelId)
-            newTranscriptLanguage = transcriptLanguageBox.GetValue()
-            if newTranscriptLanguage == "Padrão":
-                window.setChannelSettingOrigin(
-                    "default_transcript_language", "default", channelId)
-            else:
-                window.setChannelSettingOrigin(
-                    "default_transcript_language", languageDict[newTranscriptLanguage], channelId)
-            with open("blind_tube.ini", "w") as configFile:
-                window.conf.write(configFile)
-            onWindowClose(event)
-        ok.Bind(wx.EVT_BUTTON, onOk)
-        cancel = wx.Button(channelSetDial, wx.ID_CANCEL, "Cancelar")
-        cancel.Bind(wx.EVT_BUTTON, onWindowClose)
-        channelSetDial.Show()
-    channelSettings.Bind(wx.EVT_BUTTON, onChannelSettings)
-
-    def onChannelDownload(event):
-        downloadDial = Dialog(
-            channelDial, title="Baixar canal", closePrev=False)
-        folderLabel = wx.StaticText(
-            downloadDial, label="&Pasta para salvar os vídeos (será criada uma pasta com o nome do canal dentro dela)")
-        folderBox = TextCtrl(downloadDial, style=wx.TE_DONTWRAP)
-        defaultFolder = window.getSettingOrigin("download_folder")
-        folderBox.SetValue(defaultFolder)
-        defaultFormat = window.getSettingOrigin("default_format")
-        formatLabel = wx.StaticText(downloadDial, label="&Formato dos vídeos")
-        formatBox = wx.ComboBox(
-            downloadDial, choices=formatList, value=defaultFormat)
-        confirmButton = wx.Button(downloadDial, label="&Baixar")
-        cancelButton = wx.Button(downloadDial, wx.ID_CANCEL, "&Cancelar")
-        cancelButton.Bind(wx.EVT_BUTTON, onWindowClose)
-
-        def onConfirm(event):
-            folder = folderBox.GetValue()
-            if folder and not os.path.isdir(folder):
-                if not wantToCreate(folder):
-                    return
-            channelTitle = fixChars(channelData["channelTitle"])
-            newFolder = os.path.join(folder, channelTitle)
-            os.makedirs(newFolder, exist_ok=True)
-            format = formatBox.GetValue()
-            window.downloadCanceled = False
-            window.videosWithError = []
-            downloadingDial = Dialog(
-                downloadDial, title="Baixando canal", closePrev=False)
-            downloadProgress = wx.Gauge(downloadingDial)
-
-            def onPercentChange(event):
-                downloadProgress.SetValue(event.percentage)
-            window.Bind(EVT_PERCENT, onPercentChange)
-
-            def onConvPercentChange(event):
-                downloadProgress.SetValue(event.percentage)
-            window.Bind(EVT_CONV_PERCENT, onConvPercentChange)
-            cancelDownload = wx.Button(downloadingDial, label="&Cancelar")
-
-            def onCancel(event):
-                window.downloadCanceled = True
-                downloadingDial.Destroy()
-                downloadDial.Destroy()
-            cancelDownload.Bind(wx.EVT_BUTTON, onCancel)
-
-            def onDownloadsCompleted(event):
-                window.playSound("downloaded")
-                if window.videosWithError:
-                    warningDial = Dialog(
-                        downloadingDial, title="Aviso", closePrev=False)
-                    warningText = wx.StaticText(
-                        warningDial, label="Alguns vídeos deste canal não puderam ser baixados. Isso pode ter ocorrido devido a problemas de conexão, ou a algum problema com esses vídeos específicos. Se desejar tentar baixá-los novamente, clique em baixar canal ao fechar este diálogo.")
-                    warningBoxText = wx.StaticText(
-                        warningDial, label="Vídeos não baixados")
-                    warningBox = TextCtrl(
-                        warningDial, style=wx.TE_READONLY | wx.TE_MULTILINE | wx.TE_DONTWRAP)
-                    window.addListItems(warningBox, window.videosWithError)
-                    warningClose = wx.Button(
-                        warningDial, wx.ID_CANCEL, "fechar")
-                    warningDial.ShowModal()
-                downloadingDial.Destroy()
-                downloadDial.Destroy()
-            window.Bind(EVT_DOWNLOAD, onDownloadsCompleted)
-
-            def getChannelVideos():
-                newDate = datetime.now()
-                newDate = convertTimezone(newDate)
-                newDateString = isodate.strftime(newDate, "%Y-%m-%dT%H:%M:%SZ")
-                prevDate = newDate - \
-                    dateutil.relativedelta.relativedelta(months=6)
-                prevDateString = isodate.strftime(
-                    prevDate, "%Y-%m-%dT%H:%M:%SZ")
-                while True:
-                    if (prevDate.year < channelData["createdAt"].year) or (prevDate.year == channelData["createdAt"].year and prevDate.month < channelData["createdAt"].month):
-                        break
-                    videoResults = yt.search().list(part="id,snippet",
-                                                    channelId=channelData["id"], type="video", order="date", maxResults=50, publishedAfter=prevDateString, publishedBefore=newDateString).execute()
-                    if videoResults["items"]:
-                        downloadVideos(videoResults, format, newFolder)
-                        while "nextPageToken" in videoResults and videoResults["nextPageToken"]:
-                            videoResults = yt.search().list(part="id,snippet",
-                                                            channelId=channelData["id"], type="video", order="date", maxResults=50, publishedAfter=prevDateString, publishedBefore=newDateString, pageToken=videoResults["nextPageToken"]).execute()
-                            downloadVideos(videoResults, format, newFolder)
-                    newDate = prevDate
-                    prevDate = newDate - \
-                        dateutil.relativedelta.relativedelta(months=6)
-                if not window.downloadCanceled:
-                    wx.PostEvent(window, DownloadEvent())
-            window.playSound("downloading")
-            DmThread(target=getChannelVideos).start()
-            downloadingDial.Show()
-        folderBox.Bind(wx.EVT_TEXT_ENTER, onConfirm)
-        formatBox.Bind(wx.EVT_TEXT_ENTER, onConfirm)
-        confirmButton.Bind(wx.EVT_BUTTON, onConfirm)
-        downloadDial.Show()
-    downloadChannel.Bind(wx.EVT_BUTTON, onChannelDownload)
-    channelDial.Show()
-
-
 def getDataByIndex(list, dataList):
     item = list.GetFocusedItem()
     return dataList[item]
@@ -1706,67 +861,6 @@ def onVideoChar(event, videoData):
         event.Skip()
 
 
-def startDownload(url, filePath, convertPath, format, videoId, sendEvent=True):
-    videos = yt.videos().list(
-        part="id,snippet,statistics,contentDetails", id=videoId).execute()
-    video = videos["items"][0]
-    videoData = getVideoData(video)
-
-    def onProgressChange(dict):
-        if window.downloadCanceled:
-            sys.exit()
-        elif dict["status"] == "downloading":
-            percentageStr = dict["_percent_str"].replace("%", "")
-            percentage = int(float(percentageStr))
-            wx.PostEvent(window, PercentEvent(percentage=percentage))
-        elif dict["status"] == "finished":
-            if not format == "mp4":
-                speak("Iniciando conversão para "+format,
-                      interrupt=True, onlyOnWindow=True)
-                ffString = 'ffmpeg.exe'
-                ffString += f' -i "{filePath}"'
-                ffString += ' -y'
-                ffString += ' -ab 128k'
-                ffString += " -vn"
-                ffString += f' "{convertPath}"'
-                ffInfo = subprocess.STARTUPINFO()
-                ffInfo.dwFlags = subprocess.STARTF_USESHOWWINDOW
-                ffProcess = subprocess.Popen(
-                    ffString, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, startupinfo=ffInfo)
-                ffRunning = True
-                wrongPercent = False
-                videoSeconds = int(videoData["durationSeconds"])
-                totalFileSize = videoSeconds*16
-                while ffRunning:
-                    if window.downloadCanceled:
-                        ffProcess.kill()
-                        sys.exit()
-                    output = ffProcess.stdout.readline()
-                    if ffProcess.poll() is None or output:
-                        if "size=" in output:
-                            sizeExp = r"(?<=size=)[\s]*[\d]+(?=kB)"
-                            sizeString = re.search(sizeExp, output).group()
-                            sizeString = sizeString.strip()
-                            convertPercent = int(sizeString)*100//totalFileSize
-                            if not window.downloadCanceled:
-                                if convertPercent <= 100:
-                                    wx.PostEvent(window, ConvPercentEvent(
-                                        percentage=convertPercent))
-                    else:
-                        ffRunning = False
-                    time.sleep(0.05)
-                os.remove(filePath)
-            if not window.downloadCanceled and sendEvent:
-                wx.PostEvent(window, DownloadEvent())
-    ytdl = YoutubeDL({
-        "format": "mp4",
-        "quiet": True,
-        "progress_hooks": [onProgressChange],
-        "outtmpl": filePath,
-    })
-    ytdl.download(url)
-
-
 def wantToCreate(folder):
     answer = wx.MessageBox("A pasta especificada para o download não existe. Deseja criá-la?",
                            "Pasta inexistente", wx.YES_NO | wx.ICON_QUESTION)
@@ -1774,119 +868,6 @@ def wantToCreate(folder):
         os.makedirs(folder, exist_ok=True)
         return True
     return False
-
-
-def downloadVideos(videoResults, format, folder):
-    for result in videoResults.get("items", []):
-        if window.downloadCanceled:
-            sys.exit()
-        if result["kind"] == "youtube#searchResult":
-            videoId = result["id"]["videoId"]
-            videoTitle = result["snippet"]["title"]
-        elif result["kind"] == "youtube#playlistItem":
-            if result["status"]["privacyStatus"] == "private":
-                continue
-            videoId = result["snippet"]["resourceId"]["videoId"]
-            videoTitle = result["snippet"]["title"]
-        videoTitle = fixChars(videoTitle)
-        url = baseUrl+videoId
-        filePath = os.path.join(folder, videoTitle+".mp4")
-        convertPath = filePath.replace(".mp4", "."+format)
-        speak("Baixando vídeo: "+videoTitle, interrupt=True, onlyOnWindow=True)
-        try:
-            startDownload(url, filePath, convertPath,
-                          format, videoId, sendEvent=False)
-        except Exception:
-            speak("Não foi possível baixar este vídeo: "+videoTitle)
-            window.videosWithError.append(videoTitle)
-            time.sleep(1)
-
-
-def onDownload(event, videoTitle, videoId, currentWindow, listToFocus=None):
-    videoTitle = fixChars(videoTitle)
-    downloadDial = Dialog(currentWindow, title="Baixar vídeo", closePrev=False)
-    folderLabel = wx.StaticText(
-        downloadDial, label="&Pasta para salvar o arquivo (deixe em branco para salvar na pasta do programa)")
-    folderBox = TextCtrl(downloadDial, style=wx.TE_DONTWRAP)
-    defaultFolder = window.getSettingOrigin("download_folder")
-    folderBox.SetValue(defaultFolder)
-    defaultFormat = window.getSettingOrigin("default_format")
-    formatLabel = wx.StaticText(downloadDial, label="&Formato do arquivo")
-    formatBox = wx.ComboBox(
-        downloadDial, choices=formatList, value=defaultFormat)
-    nameLabel = wx.StaticText(
-        downloadDial, label="&Nome do arquivo (sem o caminho da pasta)")
-    nameBox = TextCtrl(
-        downloadDial, style=wx.TE_PROCESS_ENTER | wx.TE_DONTWRAP)
-    nameBox.SetValue(videoTitle)
-    confirmButton = wx.Button(downloadDial, wx.ID_OK, "&Baixar")
-    cancelButton = wx.Button(downloadDial, wx.ID_CANCEL, "&Cancelar")
-    cancelButton.Bind(wx.EVT_BUTTON, onWindowClose)
-
-    def onConfirm(event):
-        folder = folderBox.GetValue()
-        if folder and not os.path.isdir(folder):
-            if not wantToCreate(folder):
-                return
-        format = formatBox.GetValue()
-        window.downloadCanceled = False
-        if nameBox.IsEmpty():
-            nameBox.SetValue(videoTitle)
-            wx.MessageBox("O nome do arquivo salvo não pode estar em branco, e foi preenchido automaticamente com o título original do vídeo. Caso queira salvá-lo com outro nome, feche esta mensagem e vá ao campo de edição nome do arquivo.",
-                          "Nome de arquivo em branco", style=wx.OK | wx.ICON_WARNING, parent=downloadDial)
-            return
-        fileName = nameBox.GetValue()
-        if "." in fileName:
-            dotPosition = fileName.Find(".")
-            fileName = fileName[:dotPosition]
-        fileName += ".mp4"
-        filePath = os.path.join(folder, fileName)
-        convertPath = filePath.replace(".mp4", "."+format)
-        if os.path.isfile(convertPath):
-            wantToReplace = wx.MessageBox("Já há um arquivo com este mesmo nome e formato na pasta especificada. Deseja realizar o download mesmo assim e substituir o arquivo?",
-                                          "Arquivo já existente", wx.YES_NO | wx.ICON_QUESTION, parent=downloadDial)
-            if wantToReplace == wx.NO:
-                return
-        url = baseUrl+videoId
-        downloadingDial = Dialog(
-            downloadDial, title="Baixando vídeo", closePrev=False)
-        downloadProgress = wx.Gauge(downloadingDial)
-
-        def onPercentChange(event):
-            downloadProgress.SetValue(event.percentage)
-        window.Bind(EVT_PERCENT, onPercentChange)
-
-        def onConvPercentChange(event):
-            downloadProgress.SetValue(event.percentage)
-        window.Bind(EVT_CONV_PERCENT, onConvPercentChange)
-
-        def onDownloadFinished(event):
-            window.playSound("downloaded")
-            downloadingDial.Destroy()
-            downloadDial = downloadingDial.prevWindow
-            downloadDial.Destroy()
-            if listToFocus:
-                listToFocus.SetFocus()
-        window.Bind(EVT_DOWNLOAD, onDownloadFinished)
-        cancelDownload = wx.Button(downloadingDial, label="&Cancelar")
-
-        def onCancel(event):
-            window.downloadCanceled = True
-            downloadingDial.Destroy()
-            downloadDial.Destroy()
-            currentWindow.Show()
-            if listToFocus:
-                listToFocus.SetFocus()
-        cancelDownload.Bind(wx.EVT_BUTTON, onCancel)
-        window.playSound("downloading")
-        DmThread(target=startDownload, args=(
-            url, filePath, convertPath, format, videoId)).start()
-        downloadingDial.Show()
-    folderBox.Bind(wx.EVT_TEXT_ENTER, onConfirm)
-    formatBox.Bind(wx.EVT_TEXT_ENTER, onConfirm)
-    nameBox.Bind(wx.EVT_TEXT_ENTER, onConfirm)
-    confirmButton.Bind(wx.EVT_BUTTON, onConfirm)
-    downloadDial.Show()
 
 
 class AccessibleSearch(wx.Accessible):
@@ -2010,12 +991,14 @@ def checkLogin():
             pass
 
 
-class MainWindow(wx.Dialog):
+class MainWindow(Dialog):
     def __init__(self, parent, title, instanceData=None):
-        super().__init__(parent, title=title, style=wx.DIALOG_NO_PARENT)
+        super().__init__(parent, title=title, closePrev=False)
         self.appName = "Blind_Tube"+wx.GetUserId()
         self.video_is_loading = False
-        self.currentVersion = "02/07/2025.2"
+        self.download_canceled = False
+        self.videos_with_error = []
+        self.currentVersion = "12/07/2025"
         self.instanceChecker = wx.SingleInstanceChecker(self.appName)
         self.instanceData = instanceData
         if self.instanceData:
@@ -2046,6 +1029,7 @@ class MainWindow(wx.Dialog):
         if self.isFirstInstance:
             if self.getSetting("check_updates"):
                 self.startUpdateCheck()
+                Thread(target=self.check_ytdl_updates).start()
             self.createHotkey()
             self.hotkeyChecker.start()
             DmThread(target=checkLogin).start()
@@ -2114,7 +1098,7 @@ class MainWindow(wx.Dialog):
                         datesDiferense = currentDate-videoData["publishedAt"]
                         daysDiferense = datesDiferense.days
                         hoursDiferense = datesDiferense.seconds//3600
-                        if daysDiferense > 14:
+                        if daysDiferense > int(self.getSettingOrigin("notification_days_limit")):
                             continue
                         if not videoData in self.notifList:
                             self.notifList.append(videoData)
@@ -2126,7 +1110,7 @@ class MainWindow(wx.Dialog):
                         notifiedsFile = open("data/notifieds.txt", "a")
                         notifiedsFile.write(videoData["id"]+"\n")
                         notifiedsFile.close()
-                        if daysDiferense > 0 or hoursDiferense > 0:
+                        if daysDiferense > 0 or hoursDiferense >= int(self.getSettingOrigin("notification_warning_hours_limit")):
                             continue
                         if self.getSetting("notifications") and self.isFirstInstance:
                             if self.getSettingOrigin("notif_method") == "system":
@@ -2207,14 +1191,26 @@ class MainWindow(wx.Dialog):
                         if self.currentVersion != self.siteVersion:
                             wx.PostEvent(self, UpdaterEvent(
                                 siteVersion=self.siteVersion))
-                        time.sleep(86400)
+                            time.sleep(3600)
                     except Exception:
                         pass
                 finally:
-                    time.sleep(1800)
+                    time.sleep(600)
             self.isCheckingUpdates = False
         if not self.isCheckingUpdates:
             Thread(target=checkUpdates).start()
+
+    def check_ytdl_updates(self):
+        cmd = [
+            "yt-dlp", "-U"
+        ]
+        while self.getSetting("check_updates"):
+            try:
+                result = subprocess.run(
+                    cmd, creationflags=subprocess.CREATE_NO_WINDOW)
+            except Exception as e:
+                pass
+            time.sleep(600)
 
     def openUpdateOnBrowser(self):
         self.isCheckingUpdates = False
@@ -2232,6 +1228,7 @@ class MainWindow(wx.Dialog):
             newWindow = MainWindow(
                 None, "Blind Tube", instanceData=instanceData)
             newWindow.Show()
+            newWindow.Maximize(True)
             speak("Nova instância do Blind Tube carregada. Caso não esteja selecionada, você pode encontrá-la mantendo pressionada a tecla alt e depois pressionando tab múltiplas vezes.")
         self.Bind(EVT_INSTANCE, openInstance)
         wx.PostEvent(self, InstanceEvent())
@@ -2310,16 +1307,404 @@ class MainWindow(wx.Dialog):
     def setChannelSettingOrigin(self, settingName, settingValue, channelId):
         self.conf[channelId][settingName] = settingValue
 
+    def get_stream_url(self, video_url):
+        cmd = [
+            "yt-dlp", "-g", "-f", "mp4", "--cookies", "cookies.txt",
+            f'{video_url}'
+        ]
+
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        if result.returncode == 1:
+            wx.CallAfter(
+                wx.MessageBox, f"Não foi possível carregar o vídeo solicitado. Ocorreu um problema com a ferramenta YT-DLP: {result.stderr}", "Erro ao carregar o vídeo", wx.OK | wx.ICON_ERROR, self)
+            return
+        ytb_regex = re.compile(
+            r"https://.+\.googlevideo\.com/videoplayback\?.+")
+        for output in result.stdout.split("\n"):
+            if ytb_regex.match(output):
+                return ytb_regex.match(output).group()
+        wx.CallAfter(
+            wx.MessageBox, f"Não foi possível carregar o vídeo solicitado. Ocorreu um problema com a ferramenta YT-DLP: nenhuma saída válida retornada. {result.stdout}", "Erro ao carregar o vídeo", wx.OK | wx.ICON_ERROR, self)
+
+    def on_download(self, event, videoTitle, video_id, currentWindow, listToFocus=None):
+        videoTitle = fixChars(videoTitle)
+        url = baseUrl + video_id
+        download_dial = Dialog(
+            currentWindow, title="Baixar vídeo", closePrev=False)
+        folderLabel = wx.StaticText(
+            download_dial, label="&Pasta para salvar o arquivo (deixe em branco para salvar na pasta do programa)")
+        folderBox = TextCtrl(download_dial, style=wx.TE_DONTWRAP)
+        defaultFolder = window.getSettingOrigin("download_folder")
+        folderBox.SetValue(defaultFolder)
+        defaultFormat = window.getSettingOrigin("default_format")
+        formatLabel = wx.StaticText(download_dial, label="&Formato do arquivo")
+        formatBox = wx.ComboBox(
+            download_dial, choices=formatList, value=defaultFormat)
+        nameLabel = wx.StaticText(
+            download_dial, label="&Nome do arquivo (sem o caminho da pasta)")
+        nameBox = TextCtrl(
+            download_dial, style=wx.TE_PROCESS_ENTER | wx.TE_DONTWRAP)
+        nameBox.SetValue(videoTitle)
+        confirmButton = wx.Button(download_dial, wx.ID_OK, "&Baixar")
+        cancelButton = wx.Button(download_dial, wx.ID_CANCEL, "&Cancelar")
+        cancelButton.Bind(wx.EVT_BUTTON, onWindowClose)
+
+        def onConfirm(event):
+            folder = folderBox.GetValue()
+            if folder and not os.path.isdir(folder):
+                if not wantToCreate(folder):
+                    return
+            format = formatBox.GetValue()
+            self.download_canceled = False
+            if nameBox.IsEmpty():
+                nameBox.SetValue(videoTitle)
+                wx.MessageBox("O nome do arquivo salvo não pode estar em branco, e foi preenchido automaticamente com o título original do vídeo. Caso queira salvá-lo com outro nome, feche esta mensagem e vá ao campo de edição nome do arquivo.",
+                              "Nome de arquivo em branco", style=wx.OK | wx.ICON_WARNING, parent=download_dial)
+                return
+            fileName = nameBox.GetValue()
+            if "." in fileName:
+                dotPosition = fileName.Find(".")
+                fileName = fileName[:dotPosition]
+            fileName += ".mp4"
+            file_path = os.path.join(folder, fileName)
+            downloading_dial = Dialog(
+                download_dial, title="Baixando vídeo", closePrev=False)
+            download_progress = wx.Gauge(downloading_dial)
+            cancelDownload = wx.Button(downloading_dial, label="&Cancelar")
+
+            def onCancel(event):
+                self.download_canceled = True
+                downloading_dial.Destroy()
+                download_dial.Destroy()
+                currentWindow.Show()
+                if listToFocus:
+                    listToFocus.SetFocus()
+            cancelDownload.Bind(wx.EVT_BUTTON, onCancel)
+            window.playSound("downloading")
+            DmThread(target=self.start_download, args=(
+                url, file_path, format, video_id, download_dial, downloading_dial, download_progress, single, listToFocus)).start()
+            downloading_dial.Show()
+        folderBox.Bind(wx.EVT_TEXT_ENTER, onConfirm)
+        formatBox.Bind(wx.EVT_TEXT_ENTER, onConfirm)
+        nameBox.Bind(wx.EVT_TEXT_ENTER, onConfirm)
+        confirmButton.Bind(wx.EVT_BUTTON, onConfirm)
+        download_dial.Show()
+
+    def start_download(self, url, file_path, format, video_id, download_dial, downloading_dial, download_progress, single=True, list_to_focus=None):
+        videos = yt.videos().list(
+            part="id,snippet,statistics,contentDetails", id=video_id).execute()
+        video = videos["items"][0]
+        video_data = getVideoData(video)
+        self.start_ytdl_download(url, file_path, format, video_data, download_dial,
+                                 downloading_dial, download_progress, single, list_to_focus)
+
+    def start_ytdl_download(self, url, file_path, format, video_data, download_dial, downloading_dial, download_progress, single=True, list_to_focus=None):
+        cmd = [
+            "yt-dlp", "-f", "mp4", "--cookies", "cookies.txt", "--no-mtime", "--windows-filenames",
+            "-o", file_path, url
+        ]
+
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                   text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        percent_regex = re.compile(
+            r"^(?:\[download\]\s+)(\d{1,3}(\.\d{1,3})?)(?:%)")
+        while True:
+            output = process.stdout.readline()
+            if self.download_canceled:
+                try:
+                    process.kill()
+                    self.remove_downloaded_file(file_path + ".part")
+                except Exception as e:
+                    pass
+                return
+            if process.poll() == 1:
+                if single:
+                    wx.CallAfter(
+                        wx.MessageBox, f"Não foi possível baixar o vídeo solicitado: {process.stderr}", "Erro ao baixar o vídeo", wx.OK | wx.ICON_ERROR, downloading_dial)
+                    downloading_dial.Destroy()
+                    download_dial.Destroy()
+                return
+            if percent_regex.match(output):
+                current_percentage = round(
+                    float(percent_regex.match(output).group(1)))
+                wx.CallAfter(self.set_download_percentage,
+                             download_progress, current_percentage)
+            if process.poll() == 0:
+                self.on_download_finished(url, file_path, format, video_data,
+                                          download_dial, downloading_dial, download_progress, single, list_to_focus)
+                break
+
+    def set_download_percentage(self, download_progress, percentage):
+        download_progress.SetValue(percentage)
+
+    def remove_downloaded_file(self, file_path):
+        os.remove(file_path)
+
+    def on_download_finished(self, url, file_path, format, video_data, download_dial, downloading_dial, download_progress, single=True, list_to_focus=None):
+        result = False
+        if format.lower() != "mp4":
+            result = self.convert_downloaded_file(url, file_path, format, video_data, download_dial,
+                                                  downloading_dial, download_progress, single, list_to_focus)
+        else:
+            result = True  # não foi necessária conversão
+        if not self.download_canceled and single:
+            if result:
+                self.playSound("downloaded")
+            downloading_dial.Destroy()
+            download_dial.Destroy()
+
+    def convert_downloaded_file(self, url, file_path, format, video_data, download_dial, downloading_dial, download_progress, single, list_to_focus):
+        speak(f"Iniciando conversão para {format}", interrupt=True)
+        convert_file = re.sub(r"\.mp4$", f".{format}", file_path)
+        cmd = [
+            "ffmpeg", "-i", file_path, "-y", "-vn", "-ab", "128k",
+            convert_file
+        ]
+
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                   text=True, encoding="utf-8", creationflags=subprocess.CREATE_NO_WINDOW)
+        size_regex = re.compile(r"(?:size=\s*)(\d+)(?:kB)")
+        while True:
+            output = process.stdout.readline()
+            if self.download_canceled:
+                try:
+                    process.kill()
+                    self.remove_downloaded_file(convert_file)
+                    self.remove_downloaded_file(file_path)
+                except Exception as e:
+                    pass
+                return False
+
+            if process.poll() == 1:
+                if single:
+                    wx.CallAfter(
+                        wx.MessageBox, f"Não foi possível converter o vídeo para o formato desejado: {process.stderr}", "Erro ao converter o vídeo", wx.OK | wx.ICON_ERROR, downloading_dial)
+                    downloading_dial.Destroy()
+                    download_dial.Destroy()
+                else:
+                    speak(f"Não foi possível converter este vídeo: {video_data['videoTitle']}", interrupt=True)
+                return False
+
+            if size_regex.match(output):
+                current_size = int(size_regex.match(output).group(1))
+                video_seconds = int(video_data["durationSeconds"])
+                total_file_size = video_seconds * 16
+                current_percentage = round(
+                    current_size * 100 // total_file_size)
+
+                self.set_download_percentage(
+                    download_progress, current_percentage)
+            if process.poll() == 0:
+                try:
+                    self.remove_downloaded_file(file_path)
+                except Exception as e:
+                    pass
+                break
+
+        return True
+
+    def download_videos(self, videoResults, format, folder, download_dial, downloading_dial, download_progress):
+        for result in videoResults.get("items", []):
+            if self.download_canceled:
+                sys.exit()
+            video_id = ""
+            if result["kind"] == "youtube#searchResult":
+                video_id = result["id"]["videoId"]
+                videoTitle = result["snippet"]["title"]
+            elif result["kind"] == "youtube#playlistItem":
+                if result["status"]["privacyStatus"] == "private":
+                    continue
+                video_id = result["snippet"]["resourceId"]["videoId"]
+                videoTitle = result["snippet"]["title"]
+            videoTitle = fixChars(videoTitle)
+            url = baseUrl + str(video_id)
+            file_path = os.path.join(folder, videoTitle+".mp4")
+            speak("Baixando vídeo: "+videoTitle,
+                  interrupt=True, onlyOnWindow=True)
+            try:
+                self.start_download(url, file_path,
+                                    format, video_id, download_dial, downloading_dial, download_progress, single=False)
+            except Exception as e:
+                speak(
+                    f"Não foi possível baixar este vídeo: {videoTitle} - {traceback.format_exc()}")
+                self.videos_with_error.append(videoTitle)
+                time.sleep(1)
+
+    def loadPlaylist(self, currentWindow, playlistData):
+        playlistItems = yt.playlistItems().list(
+            part="snippet,status", playlistId=playlistData["id"], maxResults=50).execute()
+        videoIds = []
+        for playlistItem in playlistItems.get("items", []):
+            if playlistItem["status"]["privacyStatus"] == "private":
+                continue
+            videoIds.append(playlistItem["snippet"]["resourceId"]["videoId"])
+        videoIdsStr = joinIds(videoIds)
+        videos = yt.videos().list(part="id,snippet,statistics,contentDetails",
+                                  id=videoIdsStr).execute()
+        currentWindow.Bind(EVT_LOAD, self.onPlaylistLoaded)
+        wx.PostEvent(currentWindow, LoadEvent(currentWindow=currentWindow,
+                                              videos=videos, playlistData=playlistData, playlistItems=playlistItems))
+
+    def onPlaylistLoaded(self, event):
+        currentWindow = event.currentWindow
+        videos = event.videos
+        playlistData = event.playlistData
+        playlistItems = event.playlistItems
+        playlistDial = Dialog(
+            currentWindow, title="Playlist "+playlistData["title"])
+        playlistClose = wx.Button(playlistDial, wx.ID_CANCEL, "Voltar")
+        playlistClose.Bind(wx.EVT_BUTTON, onWindowClose)
+        videosLabel = wx.StaticText(playlistDial, label="&Vídeos da playlist")
+        videosList = VideosList(self, playlistDial, title="Vídeos da playlist",
+                                isPlaylist=True, playlistData=playlistData, playlistItems=playlistItems)
+        videosList.SetFocus()
+        videosData = []
+        for video in videos.get("items", []):
+            videoData = getVideoData(video)
+            videosData.append(videoData)
+            videosList.addVideo(videoData)
+        downloadPlaylist = LinkButton(
+            playlistDial, mainLabel="Bai&xar playlist")
+
+        def onPlaylistDownload(event):
+            download_dial = Dialog(
+                playlistDial, title="Baixar playlist", closePrev=False)
+            folderLabel = wx.StaticText(
+                download_dial, label="&Pasta para salvar os vídeos (será criada uma pasta com o nome da playlist dentro dela)")
+            folderBox = TextCtrl(download_dial, style=wx.TE_DONTWRAP)
+            defaultFolder = window.getSettingOrigin("download_folder")
+            defaultFormat = window.getSettingOrigin("default_format")
+            folderBox.SetValue(defaultFolder)
+            formatLabel = wx.StaticText(
+                download_dial, label="&Formato dos vídeos")
+            formatBox = wx.ComboBox(
+                download_dial, choices=formatList, value=defaultFormat)
+            confirmButton = wx.Button(download_dial, label="&Baixar")
+            cancelButton = wx.Button(download_dial, wx.ID_CANCEL, "&Cancelar")
+            cancelButton.Bind(wx.EVT_BUTTON, onWindowClose)
+
+            def onConfirm(event):
+                folder = folderBox.GetValue()
+                if folder and not os.path.isdir(folder):
+                    if not wantToCreate(folder):
+                        return
+                playlistTitle = fixChars(playlistData["title"])
+                newFolder = os.path.join(folder, playlistTitle)
+                os.makedirs(newFolder, exist_ok=True)
+                format = formatBox.GetValue()
+                self.download_canceled = False
+                self.videos_with_error = []
+                downloading_dial = Dialog(
+                    download_dial, title="Baixando playlist", closePrev=False)
+                download_progress = wx.Gauge(downloading_dial)
+
+                cancelDownload = wx.Button(downloading_dial, label="&Cancelar")
+
+                def onCancel(event):
+                    self.download_canceled = True
+                    downloading_dial.Destroy()
+                    download_dial.Destroy()
+                cancelDownload.Bind(wx.EVT_BUTTON, onCancel)
+
+                def onDownloadsCompleted(event):
+                    self.playSound("downloaded")
+                    if self.videos_with_error:
+                        warningDial = Dialog(
+                            downloading_dial, title="Aviso", closePrev=False)
+                        warningText = wx.StaticText(
+                            warningDial, label="Alguns vídeos desta playlist não puderam ser baixados. Isso pode ter ocorrido devido a problemas de conexão, ou algo relacionado a esses vídeos específicos. Se desejar tentar baixá-los novamente, clique em baixar playlist ao fechar este diálogo.")
+                        warningBoxText = wx.StaticText(
+                            warningDial, label="Vídeos não baixados")
+                        warningBox = TextCtrl(
+                            warningDial, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_DONTWRAP)
+                        self.addListItems(warningBox, self.videos_with_error)
+                        warningClose = wx.Button(
+                            warningDial, wx.ID_CANCEL, "fechar")
+                        warningDial.ShowModal()
+                    downloading_dial.Destroy()
+                    download_dial.Destroy()
+                self.Bind(EVT_DOWNLOAD, onDownloadsCompleted)
+
+                def getPlaylistVideos():
+                    videoResults = yt.playlistItems().list(
+                        part="snippet,status", playlistId=playlistData["id"], maxResults=50).execute()
+                    self.download_videos(videoResults, format, newFolder,
+                                         download_dial, downloading_dial, download_progress)
+                    while "nextPageToken" in videoResults and videoResults["nextPageToken"]:
+                        videoResults = yt.playlistItems().list(part="snippet,status",
+                                                               playlistId=playlistData["id"], maxResults=50, pageToken=videoResults["nextPageToken"]).execute()
+                        self.download_videos(videoResults, format, newFolder,
+                                             download_dial, downloading_dial, download_progress)
+                    if not self.download_canceled:
+                        wx.PostEvent(self, DownloadEvent())
+                self.playSound("downloading")
+                DmThread(target=getPlaylistVideos).start()
+                downloading_dial.Show()
+            folderBox.Bind(wx.EVT_TEXT_ENTER, onConfirm)
+            formatBox.Bind(wx.EVT_TEXT_ENTER, onConfirm)
+            confirmButton.Bind(wx.EVT_BUTTON, onConfirm)
+            download_dial.Show()
+        downloadPlaylist.Bind(wx.EVT_BUTTON, onPlaylistDownload)
+        loadMore = wx.Button(playlistDial, label="&Carregar mais")
+        if not "nextPageToken" in playlistItems:
+            loadMore.Disable()
+
+        def onLoadMore(event):
+            speak("Carregando mais...")
+
+            def loadMoreItems():
+                nextPageToken = playlistItems["nextPageToken"]
+                newPlaylistItems = yt.playlistItems().list(part="snippet,status",
+                                                           playlistId=playlistData["id"], maxResults=50, pageToken=nextPageToken).execute()
+                videoIds = []
+                for playlistItem in newPlaylistItems.get("items", []):
+                    videoIds.append(
+                        playlistItem["snippet"]["resourceId"]["videoId"])
+                videoIdsStr = joinIds(videoIds)
+                newVideos = yt.videos().list(
+                    part="id,snippet,statistics,contentDetails", id=videoIdsStr).execute()
+                playlistDial.Bind(EVT_LOAD, onMoreItemsLoaded)
+                wx.PostEvent(playlistDial, LoadEvent(
+                    newVideos=newVideos, newPlaylistItems=newPlaylistItems))
+            DmThread(target=loadMoreItems).start()
+
+            def onMoreItemsLoaded(event):
+                nonlocal playlistItems
+                nonlocal videos
+                playlistItems = event.newPlaylistItems
+                videos = event.newVideos
+                for video in videos.get("items", []):
+                    videoData = getVideoData(video)
+                    videosData.append(videoData)
+                    videosList.addVideo(videoData)
+                speak("Vídeos carregados.")
+                if not "nextPageToken" in playlistItems:
+                    speak("Fim dos vídeos.")
+                    loadMore.Disable()
+                    videosList.SetFocus()
+        loadMore.Bind(wx.EVT_BUTTON, onLoadMore)
+
+        def onNewVideosAdded(event):
+            videosData = event.videosData
+            playlistItems = event.playlistItems
+            for videoData in videosData:
+                videosList.addVideo(videoData)
+            if not "nextPageToken" in playlistItems:
+                loadMore.Disable()
+        playlistDial.Bind(EVT_NEW_VIDEOS, onNewVideosAdded)
+
+        def onVideoClosed(event):
+            videoPos = event.videoPos
+            videosList.Focus(videoPos)
+        playlistDial.Bind(EVT_VIDEO_CLOSE, onVideoClosed)
+        playlistDial.Show()
+
     def playVideo(self, currentWindow, videoData, videosData=None, isPlaylist=False, isAuto=False, playlistData=None, playlistItems=None, oldWindow=None, oldStream=None):
         try:
             self.shouldPlayNext = True
-            ytdl = YoutubeDL({
-                "quiet": True,
-                "format": "mp4",
-            })
-            info = ytdl.extract_info(videoData["url"], download=False)
-            streamUrl = info["url"]
-            videoStream = VideoStream(streamUrl, decode=True)
+            stream_url = window.get_stream_url(videoData["url"])
+            videoStream = VideoStream(stream_url, decode=True)
         except Exception as e:
             wx.MessageBox(
                 f"Não foi possível carregar o vídeo solicitado. Isso pode ocorrer se o componente YT-DLP não estiver atualizado ou se o vídeo for uma live ou estreia. Tente abrir este vídeo no navegador padrão pressionando as teclas CTRL+Enter. {traceback.format_exc()}", "Erro ao carregar o vídeo", wx.OK | wx.ICON_ERROR, currentWindow)
@@ -2488,7 +1873,7 @@ class MainWindow(wx.Dialog):
             for playerChild in playerDial.GetChildren():
                 playerChild.Bind(wx.EVT_KEY_DOWN, onElementKeys)
 
-            def pass_to(bytesFinalPosition, sendEvent=True, timeoutForward=False):
+            def pass_to(bytesFinalPosition, single=True, timeoutForward=False):
                 self.isRepositioning = True
                 if bytesFinalPosition > len(videoStream)-1:
                     bytesFinalPosition = len(videoStream)-1
@@ -2507,7 +1892,7 @@ class MainWindow(wx.Dialog):
                     videoStream.set_position(bytesFinalPosition)
                     if wasPlaying and not videoStream.length_in_seconds() - videoStream.bytes_to_seconds() <= 0.05:
                         videoStream.play()
-                    if sendEvent:
+                    if single:
                         wx.PostEvent(app, PassEvent())
                     return True
                 else:
@@ -2540,7 +1925,7 @@ class MainWindow(wx.Dialog):
                                 break
                         time.sleep(0.01)
                     else:
-                        if sendEvent:
+                        if single:
                             wx.PostEvent(app, PassEvent())
                         if wasPlaying:
                             videoStream.play()
@@ -2603,7 +1988,7 @@ class MainWindow(wx.Dialog):
                 chapter = chapters[chapters_listing.GetFocusedItem()]
                 totalsec_time = time_to_totalsec(chapter["time"])
                 pass_to(videoStream.seconds_to_bytes(
-                    totalsec_time), sendEvent=False)
+                    totalsec_time), single=False)
                 if not videoStream.is_playing:
                     videoStream.play()
                 chapters_dial.Destroy()
@@ -2653,7 +2038,7 @@ class MainWindow(wx.Dialog):
                 currentPosition = videoStream.bytes_to_seconds()
                 newPosition = currentPosition-sec if currentPosition >= sec else 0
                 newPositionBytes = videoStream.seconds_to_bytes(newPosition)
-                passResult = pass_to(newPositionBytes, sendEvent=False)
+                passResult = pass_to(newPositionBytes, single=False)
                 if passResult == True:
                     return True
                 return False
@@ -2668,7 +2053,7 @@ class MainWindow(wx.Dialog):
                 newPosition = currentPosition+sec if timeLeft >= sec else length
                 newPositionBytes = videoStream.seconds_to_bytes(newPosition)
                 passResult = pass_to(
-                    newPositionBytes, sendEvent=False, timeoutForward=True)
+                    newPositionBytes, single=False, timeoutForward=True)
                 if passResult == True:
                     return True
                 return False
@@ -2712,7 +2097,7 @@ class MainWindow(wx.Dialog):
             def onSlideEnd(event):
                 endPosition = len(videoStream) - 1
                 passResult = pass_to(
-                    endPosition, sendEvent=False, timeoutForward=True)
+                    endPosition, single=False, timeoutForward=True)
                 if passResult == False:
                     speak(
                         "Não é possível continuar avançando, pois o vídeo ainda está carregando")
@@ -3017,7 +2402,7 @@ class MainWindow(wx.Dialog):
                 playerDial, mainLabel="Abrir lista de capítul&os")
             chapters_open.Bind(wx.EVT_BUTTON, on_chapters_open)
             downloadButton = LinkButton(playerDial, mainLabel="&Baixar vídeo")
-            downloadButton.Bind(wx.EVT_BUTTON, lambda event: onDownload(
+            downloadButton.Bind(wx.EVT_BUTTON, lambda event: self.on_download(
                 event, videoData["videoTitle"], videoData["id"], playerDial))
             if videoData["likeCount"]:
                 if videoData["userRating"] == "like":
@@ -3199,7 +2584,7 @@ class MainWindow(wx.Dialog):
 
                     def onGoToChannel(event):
                         speak("Carregando canal do autor...")
-                        DmThread(target=loadChannel, args=(
+                        DmThread(target=self.loadChannel, args=(
                             commentData["authorId"], commentsWindow)).start()
                     goToChannel.Bind(wx.EVT_BUTTON, onGoToChannel)
                     replyLabel = wx.StaticText(
@@ -3227,7 +2612,7 @@ class MainWindow(wx.Dialog):
                                     }
                                 }).execute()
                             commentsWindow.Bind(EVT_SENT, onReplySent)
-                            wx.PostEvent(commentsWindow, SendEvent(
+                            wx.PostEvent(commentsWindow, single(
                                 sentReply=sentReply))
                         DmThread(target=sendReply).start()
 
@@ -3294,7 +2679,7 @@ class MainWindow(wx.Dialog):
 
                             def onGoToChannel(event):
                                 speak("Carregando canal do autor...")
-                                DmThread(target=loadChannel, args=(
+                                DmThread(target=self.loadChannel, args=(
                                     replyData["authorId"], repliesDial)).start()
                             goToChannel.Bind(wx.EVT_BUTTON, onGoToChannel)
                             replyLabel = wx.StaticText(
@@ -3550,7 +2935,7 @@ class MainWindow(wx.Dialog):
                             }
                         }).execute()
                     commentBox.Bind(EVT_SENT, onCommentSent)
-                    wx.PostEvent(commentBox, SendEvent(
+                    wx.PostEvent(commentBox, single(
                         sentComment=sentComment))
                 DmThread(target=addComment).start()
 
@@ -3563,7 +2948,7 @@ class MainWindow(wx.Dialog):
 
             def onGoToChannel(event):
                 speak("Carregando canal do autor...")
-                DmThread(target=loadChannel, args=(
+                DmThread(target=self.loadChannel, args=(
                     channelData["id"], playerDial)).start()
             goToChannel.Bind(wx.EVT_BUTTON, onGoToChannel)
             if not channelData["isSubscribed"]:
@@ -3709,6 +3094,685 @@ class MainWindow(wx.Dialog):
         wx.PostEvent(currentWindow, LoadEvent(currentWindow=currentWindow, videoStream=videoStream, videoData=videoData, videosData=videosData, isPlaylist=isPlaylist,
                      isAuto=isAuto, playlistData=playlistData, playlistItems=playlistItems, oldWindow=oldWindow, oldStream=oldStream, channelData=channelData))
 
+    def loadChannel(self, channelId, currentWindow):
+        channelResults = yt.channels().list(
+            part="id,snippet,statistics", id=channelId).execute()
+        channel = channelResults["items"][0]
+        channelData = getChannelData(channel)
+        newDate = datetime.now()
+        newDate = convertTimezone(newDate)
+        newDateString = isodate.strftime(newDate, "%Y-%m-%dT%H:%M:%SZ")
+        prevDate = newDate-dateutil.relativedelta.relativedelta(months=6)
+        prevDateString = isodate.strftime(prevDate, "%Y-%m-%dT%H:%M:%SZ")
+        videoResults = yt.search().list(part="id", channelId=channelId, type="video",
+                                        order="date", maxResults=50, publishedAfter=prevDateString).execute()
+        videoIds = []
+        for result in videoResults.get("items", []):
+            videoIds.append(result["id"]["videoId"])
+        videoIdsStr = joinIds(videoIds)
+        videos = yt.videos().list(part="id,snippet,statistics,contentDetails",
+                                  id=videoIdsStr).execute()
+        while not len(videoResults["items"]) >= 10:
+            newDate = prevDate
+            newDateString = prevDateString
+            prevDate = newDate-dateutil.relativedelta.relativedelta(months=6)
+            prevDateString = isodate.strftime(prevDate, "%Y-%m-%dT%H:%M:%SZ")
+            if prevDate < channelData["createdAt"]:
+                break
+            moreVideoResults = yt.search().list(part="id", channelId=channelId, type="video", order="date",
+                                                maxResults=50, publishedAfter=prevDateString, publishedBefore=newDateString).execute()
+            moreVideoIds = []
+            for result in moreVideoResults.get("items", []):
+                moreVideoIds.append(result["id"]["videoId"])
+            moreVideoIdsStr = joinIds(moreVideoIds)
+            moreVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
+                                          id=moreVideoIdsStr).execute()
+            videoResults["items"].extend(moreVideoResults["items"])
+            videoResults["nextPageToken"] = moreVideoResults.get(
+                "nextPageToken")
+            videos["items"].extend(moreVideos["items"])
+        currentWindow.Bind(EVT_LOAD, self.onChannelLoaded)
+        wx.PostEvent(currentWindow, LoadEvent(currentWindow=currentWindow, videos=videos, videoResults=videoResults,
+                                              channelData=channelData, newDate=newDate, newDateString=newDateString, prevDate=prevDate, prevDateString=prevDateString))
+
+    def onChannelLoaded(self, event):
+        videos = event.videos
+        videoResults = event.videoResults
+        sortMethod = "date"
+        searchTerm = ""
+        channelData = event.channelData
+        newDate = event.newDate
+        newDateString = event.newDateString
+        prevDate = event.prevDate
+        prevDateString = event.prevDateString
+        videosData = []
+        channelId = channelData["id"]
+        currentWindow = event.currentWindow
+        if not window.getSetting("fix_names"):
+            channelTitle = channelData["channelTitle"]
+        else:
+            channelTitle = channelData["channelTitle"].title()
+        channelDial = Dialog(currentWindow, title=channelTitle)
+        channelClose = wx.Button(channelDial, wx.ID_CANCEL, "Voltar")
+        channelClose.Bind(wx.EVT_BUTTON, onWindowClose)
+        videosLabel = wx.StaticText(channelDial, label="&Vídeos do canal")
+        videosList = VideosList(
+            self, channelDial, title="&Vídeos do canal", isChannel=True)
+        videosList.SetFocus()
+        for video in videos.get("items", []):
+            try:
+                videoData = getVideoData(video)
+            except Exception:
+                continue
+            videosData.append(videoData)
+            videosList.addVideo(videoData)
+        loadMoreButton = wx.Button(channelDial, label="&Carregar mais")
+        sortBy = LinkButton(
+            channelDial, mainLabel="&Ordenar por: mais recente")
+        infoLabel = wx.StaticText(channelDial, label="In&formações do canal")
+        infoBox = TextCtrl(channelDial, style=wx.TE_READONLY |
+                           wx.TE_MULTILINE | wx.TE_DONTWRAP)
+        if channelData["subscriberCount"] != "1":
+            infoBox.AppendText(channelData["subscriberCount"]+" inscritos")
+        else:
+            infoBox.AppendText(channelData["subscriberCount"]+" inscrito")
+        if channelData["videoCount"] != "1":
+            infoBox.AppendText(f"\n{channelData['videoCount']} vídeos")
+        else:
+            infoBox.AppendText(f"\n{channelData['videoCount']} vídeo")
+        publishedAtString = channelData["createdAt"].strftime(
+            "%d/%m/%Y, às %#H:%M.")
+        infoBox.AppendText(f"\nCriado em: {publishedAtString}")
+        infoBox.SetInsertionPoint(0)
+        searchLabel = wx.StaticText(channelDial, label="&Pesquisar no canal")
+        searchBox = TextCtrl(channelDial, style=wx.TE_DONTWRAP)
+
+        def onChannelSearch(event):
+            speak("Pesquisando...")
+
+            def searchChannel():
+                nonlocal searchTerm
+                searchTerm = searchBox.GetValue()
+                if searchTerm:
+                    searchResults = yt.search().list(part="id", q=searchTerm,
+                                                     channelId=channelData["id"], type="video", maxResults=50, order="relevance").execute()
+                else:
+                    searchResults = yt.search().list(part="id",
+                                                     channelId=channelData["id"], q="", type="video", maxResults=50, order=sortMethod).execute()
+                videoIds = []
+                for result in searchResults.get("items", []):
+                    if result.get("id", {}).get("videoId", 0):
+                        videoIds.append(result["id"]["videoId"])
+                videoIdsStr = joinIds(videoIds)
+                videos = yt.videos().list(part="id,snippet,statistics,contentDetails",
+                                          id=videoIdsStr).execute()
+                channelDial.Bind(EVT_LOAD, onSearchLoaded)
+                wx.PostEvent(channelDial, LoadEvent(
+                    searchResults=searchResults, videos=videos))
+            DmThread(target=searchChannel).start()
+
+            def onSearchLoaded(event):
+                videosList.clear()
+                for video in event.videos.get("items", []):
+                    try:
+                        videoData = getVideoData(video)
+                    except Exception:
+                        continue
+                    videosData.append(videoData)
+                    videosList.addVideo(videoData)
+                speak("Pesquisa carregada")
+                searchBox.Clear()
+                videosList.SetFocus()
+        searchBox.Bind(wx.EVT_TEXT_ENTER, onChannelSearch)
+
+        def onLoadMore(event):
+            speak("Carregando mais...")
+
+            def loadMore():
+                nonlocal newDate
+                nonlocal newDateString
+                nonlocal prevDate
+                nonlocal prevDateString
+                if sortMethod == "date" and not searchTerm:
+                    if "nextPageToken" in videoResults and videoResults["nextPageToken"]:
+                        nextPageToken = videoResults["nextPageToken"]
+                        newVideoResults = yt.search().list(part="id", channelId=channelId, type="video", order="date", maxResults=50,
+                                                           publishedAfter=prevDateString, publishedBefore=newDateString, pageToken=nextPageToken).execute()
+                        newVideoIds = []
+                        for result in newVideoResults.get("items", []):
+                            newVideoIds.append(result["id"]["videoId"])
+                        newVideoIdsStr = joinIds(newVideoIds)
+                        newVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
+                                                     id=newVideoIdsStr).execute()
+                    else:
+                        newDate = prevDate
+                        newDateString = prevDateString
+                        prevDate = newDate - \
+                            dateutil.relativedelta.relativedelta(months=6)
+                        prevDateString = isodate.strftime(
+                            prevDate, "%Y-%m-%dT%H:%M:%SZ")
+                        newVideoResults = yt.search().list(part="id", channelId=channelId, q=searchTerm, type="video",
+                                                           order="date", maxResults=50, publishedAfter=prevDateString, publishedBefore=newDateString).execute()
+                        newVideoIds = []
+                        for result in newVideoResults.get("items", []):
+                            newVideoIds.append(result["id"]["videoId"])
+                        newVideoIdsStr = joinIds(newVideoIds)
+                        newVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
+                                                     id=newVideoIdsStr).execute()
+                        while not len(newVideoResults["items"]) >= 10:
+                            newDate = prevDate
+                            newDateString = prevDateString
+                            prevDate = newDate - \
+                                dateutil.relativedelta.relativedelta(months=6)
+                            prevDateString = isodate.strftime(
+                                prevDate, "%Y-%m-%dT%H:%M:%SZ")
+                            if prevDate < channelData["createdAt"]:
+                                if newVideoResults["items"]:
+                                    break
+                                else:
+                                    speak("Não há mais vídeos a serem carregados")
+                                    loadMoreButton.Disable()
+                                    return
+                            moreVideoResults = yt.search().list(part="id", channelId=channelId, type="video", order="date",
+                                                                maxResults=50, publishedAfter=prevDateString, publishedBefore=newDateString).execute()
+                            moreVideoIds = []
+                            for result in moreVideoResults.get("items", []):
+                                moreVideoIds.append(result["id"]["videoId"])
+                            moreVideoIdsStr = joinIds(moreVideoIds)
+                            moreVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
+                                                          id=moreVideoIdsStr).execute()
+                            newVideoResults["items"].extend(
+                                moreVideoResults["items"])
+                            newVideoResults["nextPageToken"] = moreVideoResults.get(
+                                "nextPageToken")
+                            newVideos["items"].extend(moreVideos["items"])
+                elif sortMethod == "reverseDate" and not searchTerm:
+                    prevDate = newDate
+                    newDate = prevDate + \
+                        dateutil.relativedelta.relativedelta(months=6)
+                    newDateString = isodate.strftime(
+                        newDate, "%Y-%m-%dT%H:%M:%SZ")
+                    newVideoResults = yt.search().list(part="id", channelId=channelId, type="video", order="date",
+                                                       maxResults=50, publishedBefore=newDateString, publishedAfter=prevDateString).execute()
+                    newVideoIds = []
+                    for result in newVideoResults.get("items", []):
+                        newVideoIds.append(result["id"]["videoId"])
+                    newVideoIdsStr = joinIds(newVideoIds)
+                    newVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
+                                                 id=newVideoIdsStr).execute()
+                    while not len(newVideoResults["items"]) >= 10:
+                        prevDate = newDate
+                        newDate = prevDate + \
+                            dateutil.relativedelta.relativedelta(months=6)
+                        newDateString = isodate.strftime(
+                            newDate, "%Y-%m-%dT%H:%M:%SZ")
+                        currentDate = datetime.now()
+                        if (newDate.year > currentDate.year) or (newDate.year == currentDate.year and newDate.month > currentDate.month):
+                            if newVideoResults["items"]:
+                                break
+                            else:
+                                speak("Não há mais vídeos a serem carregados")
+                                loadMoreButton.Disable()
+                                return
+                        moreVideoResults = yt.search().list(part="id", channelId=channelId, type="video", order="date",
+                                                            maxResults=50, publishedBefore=newDateString, published_after=prevDateString).execute()
+                        moreVideoIds = []
+                        for result in moreVideoResults.get("items", []):
+                            moreVideoIds.append(result["id"]["videoId"])
+                        moreVideoIdsStr = joinIds(moreVideoIds)
+                        moreVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
+                                                      id=moreVideoIdsStr).execute()
+                        newVideoResults["items"].extend(
+                            moreVideoResults["items"])
+                        newVideoResults["nextPageToken"] = moreVideoResults.get(
+                            "nextPageToken")
+                        newVideos["items"].extend(moreVideos["items"])
+                    while "nextPageToken" in newVideoResults and newVideoResults["nextPageToken"]:
+                        nextPageToken = newVideoResults["nextPageToken"]
+                        moreVideoResults = yt.search().list(part="id", channelId=channelId, type="video", order="date", maxResults=50,
+                                                            publishedAfter=prevDateString, publishedBefore=newDateString, pageToken=nextPageToken).execute()
+                        moreVideoIds = []
+                        for result in moreVideoResults.get("items", []):
+                            moreVideoIds.append(result["id"]["videoId"])
+                        moreVideoIdsStr = joinIds(moreVideoIds)
+                        moreVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
+                                                      id=moreVideoIdsStr).execute()
+                        newVideoResults["items"].extend(
+                            moreVideoResults["items"])
+                        newVideoResults["nextPageToken"] = moreVideoResults.get(
+                            "nextPageToken")
+                        newVideos["items"].extend(moreVideos["items"])
+                    newVideoResults["items"].reverse()
+                    newVideos["items"].reverse()
+                else:
+                    if searchTerm:
+                        newVideoResults = yt.search().list(part="id", channelId=channelId, q=searchTerm,
+                                                           type="video", order="date", maxResults=50).execute()
+                    else:
+                        newVideoResults = yt.search().list(part="id", channelId=channelId, type="video",
+                                                           order=sortMethod, maxResults=50, pageToken=videoResults["nextPageToken"]).execute()
+                    newVideoIds = []
+                    for result in newVideoResults.get("items", []):
+                        newVideoIds.append(result["id"]["videoId"])
+                    newVideoIdsStr = joinIds(newVideoIds)
+                    newVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
+                                                 id=newVideoIdsStr).execute()
+                channelDial.Bind(EVT_LOAD, onNewVideosLoaded)
+                wx.PostEvent(channelDial, LoadEvent(
+                    newVideos=newVideos, newVideoResults=newVideoResults))
+            DmThread(target=loadMore).start()
+
+            def onNewVideosLoaded(event):
+                newVideos = event.newVideos
+                newVideoResults = event.newVideoResults
+                nonlocal videoResults
+                videoResults = newVideoResults
+                for video in newVideos.get("items", []):
+                    try:
+                        videoData = getVideoData(video)
+                    except Exception:
+                        continue
+                    videosData.append(videoData)
+                    videosList.addVideo(videoData)
+                speak("Vídeos carregados.")
+                if sortMethod == "date":
+                    if newDate < channelData["createdAt"]:
+                        speak("Fim dos vídeos")
+                        loadMoreButton.Disable()
+        loadMoreButton.Bind(wx.EVT_BUTTON, onLoadMore)
+
+        def onSort(event):
+            if searchTerm:
+                wx.MessageBox("Não é possível ordenar os vídeos no momento porque você está no modo de pesquisa. Para voltar ao modo padrão, pressione alt+p ou vá para o campo de pesquisa e pressione enter, deixando-o em branco.",
+                              "Não é possível ordenar", wx.OK | wx.ICON_ERROR, channelDial)
+                return
+            sortMenu = wx.Menu()
+            recent = sortMenu.Append(1, "Mais &recente")
+            popular = sortMenu.Append(2, "Mais &populares")
+            old = sortMenu.Append(3, "Mais &antigo")
+
+            def sort(sortMethod):
+                nonlocal newDate
+                nonlocal newDateString
+                nonlocal prevDate
+                nonlocal prevDateString
+                videosList.clear()
+                if sortMethod == "date":
+                    newDate = datetime.now()
+                    newDate = convertTimezone(newDate)
+                    newDateString = isodate.strftime(
+                        newDate, "%Y-%m-%dT%H:%M:%SZ")
+                    prevDate = newDate - \
+                        dateutil.relativedelta.relativedelta(months=6)
+                    prevDateString = isodate.strftime(
+                        prevDate, "%Y-%m-%dT%H:%M:%SZ")
+                    videoResults = yt.search().list(part="id", channelId=channelId, type="video",
+                                                    order="date", maxResults=50, publishedAfter=prevDateString).execute()
+                    videoIds = []
+                    for result in videoResults.get("items", []):
+                        videoIds.append(result["id"]["videoId"])
+                    videoIdsStr = joinIds(videoIds)
+                    videos = yt.videos().list(part="id,snippet,statistics,contentDetails",
+                                              id=videoIdsStr).execute()
+                    while not len(videoResults["items"]) >= 10:
+                        newDate = prevDate
+                        newDateString = prevDateString
+                        prevDate = newDate - \
+                            dateutil.relativedelta.relativedelta(months=6)
+                        prevDateString = isodate.strftime(
+                            prevDate, "%Y-%m-%dT%H:%M:%SZ")
+                        if prevDate < channelData["createdAt"]:
+                            break
+                        moreVideoResults = yt.search().list(part="id", channelId=channelId, type="video", order="date",
+                                                            maxResults=50, publishedAfter=prevDateString, publishedBefore=newDateString).execute()
+                        moreVideoIds = []
+                        for result in moreVideoResults.get("items", []):
+                            moreVideoIds.append(result["id"]["videoId"])
+                        moreVideoIdsStr = joinIds(moreVideoIds)
+                        moreVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
+                                                      id=moreVideoIdsStr).execute()
+                        videoResults["items"].extend(moreVideoResults["items"])
+                elif sortMethod == "reverseDate":
+                    prevDate = channelData["createdAt"]
+                    prevDateString = isodate.strftime(
+                        prevDate, "%Y-%m-%dT%H:%M:%SZ")
+                    newDate = prevDate + \
+                        dateutil.relativedelta.relativedelta(months=6)
+                    newDateString = isodate.strftime(
+                        newDate, "%Y-%m-%dT%H:%M:%SZ")
+                    videoResults = yt.search().list(part="id", channelId=channelId, type="video",
+                                                    order="date", maxResults=50, publishedBefore=newDateString).execute()
+                    videoIds = []
+                    for result in videoResults.get("items", []):
+                        videoIds.append(result["id"]["videoId"])
+                    videoIdsStr = joinIds(videoIds)
+                    videos = yt.videos().list(part="id,snippet,statistics,contentDetails",
+                                              id=videoIdsStr).execute()
+                    while not len(videoResults["items"]) >= 10:
+                        prevDate = newDate
+                        newDate = prevDate + \
+                            dateutil.relativedelta.relativedelta(months=6)
+                        newDateString = isodate.strftime(
+                            newDate, "%Y-%m-%dT%H:%M:%SZ")
+                        currentDate = datetime.now()
+                        if (newDate.year > currentDate.year) or (newDate.year == currentDate.year and newDate.month > currentDate.month):
+                            break
+                        moreVideoResults = yt.search().list(part="id", channelId=channelId, type="video", order="date",
+                                                            maxResults=50, publishedBefore=newDateString, publishedAfter=prevDateString).execute()
+                        moreVideoIds = []
+                        for result in moreVideoResults.get("items", []):
+                            moreVideoIds.append(result["id"]["videoId"])
+                        moreVideoIdsStr = joinIds(moreVideoIds)
+                        moreVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
+                                                      id=moreVideoIdsStr).execute()
+                        videoResults["items"].extend(moreVideoResults["items"])
+                        videoResults["nextPageToken"] = moreVideoResults.get(
+                            "nextPageToken")
+                        videos["items"].extend(moreVideos["items"])
+                    while "nextPageToken" in videoResults and videoResults["nextPageToken"]:
+                        nextPageToken = videoResults["nextPageToken"]
+                        newVideoResults = yt.search().list(part="id", channelId=channelId, type="video", order="date", maxResults=50,
+                                                           publishedAfter=prevDateString, publishedBefore=newDateString, pageToken=nextPageToken).execute()
+                        newVideoIds = []
+                        for result in newVideoResults.get("items", []):
+                            newVideoIds.append(result["id"]["videoId"])
+                        newVideoIdsStr = joinIds(newVideoIds)
+                        newVideos = yt.videos().list(part="id,snippet,statistics,contentDetails",
+                                                     id=newVideoIdsStr).execute()
+                        videoResults["items"].extend(newVideoResults["items"])
+                        videoResults["nextPageToken"] = newVideoResults.get(
+                            "nextPageToken")
+                        videos["items"].extend(newVideos["items"])
+                    videoResults["items"].reverse()
+                    videos["items"].reverse()
+                else:
+                    videoResults = yt.search().list(part="id", channelId=channelId, q=searchTerm,
+                                                    type="video", order=sortMethod, maxResults=50).execute()
+                    videoIds = []
+                    for result in videoResults.get("items", []):
+                        videoIds.append(result["id"]["videoId"])
+                    videoIdsStr = joinIds(videoIds)
+                    videos = yt.videos().list(part="id,snippet,statistics,contentDetails",
+                                              id=videoIdsStr).execute()
+                channelDial.Bind(EVT_LOAD, onSortLoaded)
+                wx.PostEvent(channelDial, LoadEvent(sortedVideos=videos))
+
+            def onSortSelected(event):
+                nonlocal sortMethod
+                loadMoreButton.Enable(True)
+                itemId = event.GetId()
+                menuItem = sortMenu.FindItemById(itemId)
+                if itemId == 1:
+                    sortMethod = "date"
+                elif itemId == 2:
+                    sortMethod = "viewCount"
+                else:
+                    sortMethod = "reverseDate"
+                itemLabel = menuItem.GetItemLabelText()
+                sortBy.SetLabel("&Ordenar por: "+itemLabel)
+                if sortMethod == "date" or sortMethod == "viewCount":
+                    DmThread(target=sort, args=(sortMethod,)).start()
+                else:
+                    DmThread(target=sort, args=("reverseDate",)).start()
+            sortMenu.Bind(wx.EVT_MENU, onSortSelected)
+
+            def onSortLoaded(event):
+                videos = event.sortedVideos
+                for video in videos.get("items", []):
+                    videoData = getVideoData(video)
+                    videosData.append(videoData)
+                    videosList.addVideo(videoData)
+                speak("Alerta vídeos ordenados.", interrupt=True)
+                videosList.SetFocus()
+            channelDial.PopupMenu(sortMenu)
+        sortBy.Bind(wx.EVT_BUTTON, onSort)
+        if not channelData["isSubscribed"]:
+            subscribe = wx.Button(
+                channelDial, label=f"&Inscreva-se em {channelData['channelTitle']}")
+        else:
+            subscribe = wx.Button(
+                channelDial, label=f"Cancelar &inscrição de {channelData['channelTitle']}")
+        subscribe.Bind(
+            wx.EVT_BUTTON, lambda event: onSubscribe(event, channelData))
+        downloadChannel = LinkButton(channelDial, mainLabel="Bai&xar canal")
+        aboutLabel = wx.StaticText(channelDial, label="&Sobre este canal")
+        aboutBox = TextCtrl(channelDial, style=wx.TE_MULTILINE |
+                            wx.TE_READONLY | wx.TE_DONTWRAP, value=channelData["about"])
+        showPlaylists = LinkButton(channelDial, mainLabel="Play&lists")
+
+        def onPlaylists(event):
+            speak("Carregando playlists...")
+
+            def loadChannelPlaylists():
+                playlists = yt.playlists().list(part="id,snippet,contentDetails",
+                                                channelId=channelData["id"], maxResults=50).execute()
+                channelDial.Bind(EVT_LOAD, onPlaylistsLoaded)
+                wx.PostEvent(channelDial, LoadEvent(
+                    playlists=playlists, channelData=channelData))
+            DmThread(target=loadChannelPlaylists).start()
+
+            def onPlaylistsLoaded(event):
+                playlists = event.playlists
+                channelData = event.channelData
+                playlistsDial = Dialog(
+                    channelDial, title="Playlists de "+channelData["channelTitle"])
+                playlistsClose = wx.Button(
+                    playlistsDial, wx.ID_CANCEL, "Voltar")
+                playlistsClose.Bind(wx.EVT_BUTTON, onWindowClose)
+                playlistsLabel = wx.StaticText(
+                    playlistsDial, label="&Playlists")
+                playlistsList = List(playlistsDial, title="Playlists")
+                playlistsList.SetFocus()
+                playlistsData = []
+                for playlist in playlists.get("items", []):
+                    playlistData = getPlaylistData(playlist)
+                    playlistsData.append(playlistData)
+                    addPlaylist(playlistsList, playlistData)
+
+                def onPlaylistSelected(event):
+                    speak("Carregando playlist...")
+                    item = event.GetIndex()
+                    playlistData = playlistsData[item]
+                    DmThread(target=self.loadPlaylist, args=(
+                        playlistsDial, playlistData,)).start()
+                playlistsList.Bind(
+                    wx.EVT_LIST_ITEM_ACTIVATED, onPlaylistSelected)
+                loadMore = wx.Button(playlistsDial, label="&Carregar mais")
+                if not "nextPageToken" in playlists:
+                    loadMore.Disable()
+
+                def onLoadMore(event):
+                    speak("Carregando mais...")
+
+                    def loadMorePlaylists():
+                        nextPageToken = playlists["nextPageToken"]
+                        newPlaylists = yt.playlists().list(part="id,snippet,contentDetails",
+                                                           channelId=channelData["id"], maxResults=50, pageToken=nextPageToken).execute()
+                        playlistsDial.Bind(EVT_LOAD, onMorePlaylistsLoaded)
+                        wx.PostEvent(playlistsDial, LoadEvent(
+                            newPlaylists=newPlaylists))
+                    DmThread(target=loadMorePlaylists).start()
+
+                    def onMorePlaylistsLoaded(event):
+                        nonlocal playlists
+                        playlists = event.newPlaylists
+                        for playlist in playlists.get("items", []):
+                            playlistData = getPlaylistData(playlist)
+                            playlistsData.append(playlistData)
+                            addPlaylist(playlistsList, playlistData)
+                        speak("Playlists carregadas.", interrupt=True)
+                        if not "nextPageToken" in playlists:
+                            speak("Fim das playlists.")
+                            loadMore.Disable()
+                            playlistsList.SetFocus()
+                loadMore.Bind(wx.EVT_BUTTON, onLoadMore)
+                playlistsDial.Show()
+        showPlaylists.Bind(wx.EVT_BUTTON, onPlaylists)
+        channelSettings = LinkButton(
+            channelDial, mainLabel="Co&nfigurações do canal")
+
+        def onChannelSettings(event):
+            channelId = channelData["id"]
+            channelSetDial = Dialog(
+                channelDial, title="Configurações do canal "+channelData["channelTitle"])
+            defaultSpeedLabel = wx.StaticText(
+                channelSetDial, label="Velocidad&e padrão para os vídeos do canal")
+            speedsList = ["Padrão"]+list(videoSpeeds.keys())
+            defaultSpeedBox = wx.ComboBox(
+                channelSetDial, choices=speedsList, style=wx.CB_READONLY)
+            speedValue = window.getChannelSettingOrigin(
+                "default_speed", channelId)
+            if speedValue == "default":
+                defaultSpeedBox.SetValue("Padrão")
+            else:
+                defaultSpeedBox.SetValue(speedValue)
+            notifBox = wx.CheckBox(
+                channelSetDial, label="Ativar &notificações de novos vídeos para este canal (se inscrito)")
+            notifBox.SetValue(window.getChannelSetting(
+                "notifications", channelId))
+            transcriptLanguageLabel = wx.StaticText(
+                channelSetDial, label="Idioma para as trans&crições de vídeos do canal")
+            channelLanguageList = ["Padrão"] + languageList
+            transcriptLanguageBox = wx.ComboBox(
+                channelSetDial, choices=channelLanguageList, style=wx.CB_READONLY)
+            languageCode = window.getChannelSettingOrigin(
+                "default_transcript_language", channelId)
+            if languageCode == "default":
+                languageName = "Padrão"
+            else:
+                languageName = list(languageDict.keys())[list(
+                    languageDict.values()).index(languageCode)]
+            transcriptLanguageBox.SetStringSelection(languageName)
+            ok = wx.Button(channelSetDial, wx.ID_OK, "Ok")
+
+            def onOk(event):
+                if not window.conf.has_section(channelId):
+                    window.conf.add_section(channelId)
+                newSpeedValue = defaultSpeedBox.GetValue()
+                if newSpeedValue == "Padrão":
+                    window.setChannelSettingOrigin(
+                        "default_speed", "default", channelId)
+                else:
+                    window.setChannelSettingOrigin(
+                        "default_speed", newSpeedValue, channelId)
+                window.setChannelSetting(
+                    "notifications", notifBox.GetValue(), channelId)
+                newTranscriptLanguage = transcriptLanguageBox.GetValue()
+                if newTranscriptLanguage == "Padrão":
+                    window.setChannelSettingOrigin(
+                        "default_transcript_language", "default", channelId)
+                else:
+                    window.setChannelSettingOrigin(
+                        "default_transcript_language", languageDict[newTranscriptLanguage], channelId)
+                with open("blind_tube.ini", "w") as configFile:
+                    window.conf.write(configFile)
+                onWindowClose(event)
+            ok.Bind(wx.EVT_BUTTON, onOk)
+            cancel = wx.Button(channelSetDial, wx.ID_CANCEL, "Cancelar")
+            cancel.Bind(wx.EVT_BUTTON, onWindowClose)
+            channelSetDial.Show()
+        channelSettings.Bind(wx.EVT_BUTTON, onChannelSettings)
+
+        def onChannelDownload(event):
+            download_dial = Dialog(
+                channelDial, title="Baixar canal", closePrev=False)
+            folderLabel = wx.StaticText(
+                download_dial, label="&Pasta para salvar os vídeos (será criada uma pasta com o nome do canal dentro dela)")
+            folderBox = TextCtrl(download_dial, style=wx.TE_DONTWRAP)
+            defaultFolder = window.getSettingOrigin("download_folder")
+            folderBox.SetValue(defaultFolder)
+            defaultFormat = window.getSettingOrigin("default_format")
+            formatLabel = wx.StaticText(
+                download_dial, label="&Formato dos vídeos")
+            formatBox = wx.ComboBox(
+                download_dial, choices=formatList, value=defaultFormat)
+            confirmButton = wx.Button(download_dial, label="&Baixar")
+            cancelButton = wx.Button(download_dial, wx.ID_CANCEL, "&Cancelar")
+            cancelButton.Bind(wx.EVT_BUTTON, onWindowClose)
+
+            def onConfirm(event):
+                folder = folderBox.GetValue()
+                if folder and not os.path.isdir(folder):
+                    if not wantToCreate(folder):
+                        return
+                channelTitle = fixChars(channelData["channelTitle"])
+                newFolder = os.path.join(folder, channelTitle)
+                os.makedirs(newFolder, exist_ok=True)
+                format = formatBox.GetValue()
+                self.download_canceled = False
+                self.videos_with_error = []
+                downloading_dial = Dialog(
+                    download_dial, title="Baixando canal", closePrev=False)
+                download_progress = wx.Gauge(downloading_dial)
+
+                cancelDownload = wx.Button(downloading_dial, label="&Cancelar")
+
+                def onCancel(event):
+                    self.download_canceled = True
+                    downloading_dial.Destroy()
+                    download_dial.Destroy()
+                cancelDownload.Bind(wx.EVT_BUTTON, onCancel)
+
+                def onDownloadsCompleted(event):
+                    self.playSound("downloaded")
+                    if self.videos_with_error:
+                        warningDial = Dialog(
+                            downloading_dial, title="Aviso", closePrev=False)
+                        warningText = wx.StaticText(
+                            warningDial, label="Alguns vídeos deste canal não puderam ser baixados. Isso pode ter ocorrido devido a problemas de conexão, ou a algum problema com esses vídeos específicos. Se desejar tentar baixá-los novamente, clique em baixar canal ao fechar este diálogo.")
+                        warningBoxText = wx.StaticText(
+                            warningDial, label="Vídeos não baixados")
+                        warningBox = TextCtrl(
+                            warningDial, style=wx.TE_READONLY | wx.TE_MULTILINE | wx.TE_DONTWRAP)
+                        self.addListItems(warningBox, self.videos_with_error)
+                        warningClose = wx.Button(
+                            warningDial, wx.ID_CANCEL, "fechar")
+                        warningDial.ShowModal()
+                    downloading_dial.Destroy()
+                    download_dial.Destroy()
+                self.Bind(EVT_DOWNLOAD, onDownloadsCompleted)
+
+                def getChannelVideos():
+                    newDate = datetime.now()
+                    newDate = convertTimezone(newDate)
+                    newDateString = isodate.strftime(
+                        newDate, "%Y-%m-%dT%H:%M:%SZ")
+                    prevDate = newDate - \
+                        dateutil.relativedelta.relativedelta(months=6)
+                    prevDateString = isodate.strftime(
+                        prevDate, "%Y-%m-%dT%H:%M:%SZ")
+                    while True:
+                        if prevDate < channelData["createdAt"]:
+                            break
+                        videoResults = yt.search().list(part="id,snippet",
+                                                        channelId=channelData["id"], type="video", order="date", maxResults=50, publishedAfter=prevDateString, publishedBefore=newDateString).execute()
+                        if videoResults["items"]:
+                            self.download_videos(videoResults, format, newFolder,
+                                                 download_dial, downloading_dial, download_progress)
+                            while "nextPageToken" in videoResults and videoResults["nextPageToken"]:
+                                videoResults = yt.search().list(part="id,snippet",
+                                                                channelId=channelData["id"], type="video", order="date", maxResults=50, publishedAfter=prevDateString, publishedBefore=newDateString, pageToken=videoResults["nextPageToken"]).execute()
+                                self.download_videos(
+                                    videoResults, format, newFolder, download_dial, downloading_dial, download_progress)
+                        newDate = prevDate
+                        prevDate = newDate - \
+                            dateutil.relativedelta.relativedelta(months=6)
+                        newDateString = isodate.strftime(
+                            newDate, "%Y-%m-%dT%H:%M:%SZ")
+                        prevDateString = isodate.strftime(
+                            prevDate, "%Y-%m-%dT%H:%M:%SZ")
+                    if not self.download_canceled:
+                        wx.PostEvent(self, DownloadEvent())
+                self.playSound("downloading")
+                DmThread(target=getChannelVideos).start()
+                downloading_dial.Show()
+            folderBox.Bind(wx.EVT_TEXT_ENTER, onConfirm)
+            formatBox.Bind(wx.EVT_TEXT_ENTER, onConfirm)
+            confirmButton.Bind(wx.EVT_BUTTON, onConfirm)
+            download_dial.Show()
+        downloadChannel.Bind(wx.EVT_BUTTON, onChannelDownload)
+        channelDial.Show()
+
     def addListItems(self, textBox, list):
         for index, item in enumerate(list):
             if index < len(list)-1:
@@ -3798,6 +3862,10 @@ class MainWindow(wx.Dialog):
         searchBox.Bind(wx.EVT_KEY_DOWN, onSearchKeyDown)
 
         def onSearch(event):
+            if searchBox.IsEmpty():
+                wx.MessageBox("Digite algo para pesquisar primeiro",
+                              "Campo de busca vazio", wx.OK | wx.ICON_ERROR, self)
+                return
             speak("Carregando resultados...")
             searchTerm = searchBox.GetValue()
 
@@ -3842,14 +3910,14 @@ class MainWindow(wx.Dialog):
                 resultsClose = wx.Button(resultsDial, wx.ID_CANCEL, "Voltar")
                 resultsClose.Bind(wx.EVT_BUTTON, onWindowClose)
                 videosLabel = wx.StaticText(resultsDial, label="&Vídeos")
-                videosList = VideosList(resultsDial, title="&Vídeos")
+                videosList = VideosList(self, resultsDial, title="&Vídeos")
                 videosList.SetFocus()
 
                 def onGoToChannel(event):
                     speak("Carregando canal do autor...")
                     videoData = videosList.videoData
                     channelId = videoData["channelId"]
-                    DmThread(target=loadChannel, args=(
+                    DmThread(target=self.loadChannel, args=(
                         channelId, resultsDial)).start()
                 videosList.goToChannel.Bind(wx.EVT_BUTTON, onGoToChannel)
                 channelsLabel = wx.StaticText(resultsDial, label="Ca&nais")
@@ -3873,7 +3941,7 @@ class MainWindow(wx.Dialog):
                     item = channelsList.GetFocusedItem()
                     channelData = channelsData[item]
                     channelId = channelData["id"]
-                    DmThread(target=loadChannel, args=(
+                    DmThread(target=self.loadChannel, args=(
                         channelId, resultsDial)).start()
                 channelsList.Bind(wx.EVT_LIST_ITEM_ACTIVATED,
                                   onChannelSelected)
@@ -3954,40 +4022,9 @@ class MainWindow(wx.Dialog):
                 speak("Carregando canal...")
                 item = subsList.GetFocusedItem()
                 subData = subsData[item]
-                DmThread(target=loadChannel, args=(
+                DmThread(target=self.loadChannel, args=(
                     subData["channelId"], subsDial)).start()
             subsList.Bind(wx.EVT_LIST_ITEM_ACTIVATED, onSubSelected)
-            updateSubs = wx.Button(subsDial, label="&Atualizar inscrições")
-
-            def onSubsUpdate(event):
-                speak("Atualizando...")
-
-                def updateSubs():
-                    window.getAllSubs()
-                    window.getMainSubs()
-                    self.allSubs = window.allSubs
-                    self.mainSubs = window.mainSubs
-                    subs = self.allSubs
-                    wx.PostEvent(subsDial, LoadEvent(subs=subs))
-
-                def onUpdatedSubsLoaded(event):
-                    nonlocal subs
-                    subs = event.subs
-                    subsList.DeleteAllItems()
-                    subsData.clear()
-                    for sub in subs.get("items", []):
-                        subData = getSubData(sub)
-                        subsData.append(subData)
-                        if not window.getSetting("fix_names"):
-                            subTitle = subData["channelTitle"]
-                        else:
-                            subTitle = subData["channelTitle"].title()
-                        subsList.Append((subTitle,))
-                    speak("Inscrições atualizadas", interrupt=True)
-                    subsList.SetFocus()
-                subsDial.Bind(EVT_LOAD, onUpdatedSubsLoaded)
-                DmThread(target=updateSubs).start()
-            updateSubs.Bind(wx.EVT_BUTTON, onSubsUpdate)
             subsDial.Show()
         subscriptions.Bind(wx.EVT_BUTTON, onSubscriptions)
         subscriptions.SetAccessible(AccessibleLinkButton())
@@ -4012,7 +4049,7 @@ class MainWindow(wx.Dialog):
             notifClose.Bind(wx.EVT_BUTTON, onWindowClose)
             notifLabel = wx.StaticText(notifDialog, label="&Notificações")
             videosList = VideosList(
-                notifDialog, title="Notificações", supportShortcuts=False)
+                self, notifDialog, title="Notificações", supports_shortcuts=False)
             videosList.SetFocus()
             for videoData in videosData:
                 addFeedVideo(videosList, videoData)
@@ -4040,7 +4077,7 @@ class MainWindow(wx.Dialog):
                 speak("Carregando canal do autor...")
                 feedData = videosList.videoData
                 channelId = feedData["channelId"]
-                DmThread(target=loadChannel, args=(
+                DmThread(target=self.loadChannel, args=(
                     channelId, notifDialog)).start()
             videosList.goToChannel.Bind(wx.EVT_BUTTON, onGoToChannel)
             self.playSound("notifs")
@@ -4070,7 +4107,8 @@ class MainWindow(wx.Dialog):
                 backButton.Bind(wx.EVT_BUTTON, onWindowClose)
                 trendingLabel = wx.StaticText(
                     exploreDial, label="&Vídeos em alta")
-                videosList = VideosList(exploreDial, title="Vídeos em alta")
+                videosList = VideosList(
+                    self, exploreDial, title="Vídeos em alta")
                 videosList.SetFocus()
                 trendingVideos = event.trendingVideos
                 videosData = []
@@ -4083,7 +4121,7 @@ class MainWindow(wx.Dialog):
                     speak("Carregando canal do autor...")
                     videoData = videosList.videoData
                     channelId = videoData["channelId"]
-                    DmThread(target=loadChannel, args=(
+                    DmThread(target=self.loadChannel, args=(
                         channelId, exploreDial)).start()
                 videosList.goToChannel.Bind(wx.EVT_BUTTON, onGoToChannel)
                 categoriesItems = event.categories["items"]
@@ -4164,7 +4202,7 @@ class MainWindow(wx.Dialog):
         def onSettings(event):
             settingsDial = Dialog(self, title="Configurações")
             notifBox = wx.CheckBox(
-                settingsDial, label="Ativar &notificações de novos vídeos")
+                settingsDial, label="Ativar &notificações de novos vídeos (afeta apenas os avisos de notificação, não a lista)")
             if self.getSetting("notifications"):
                 notifBox.SetValue(True)
             notifMethods = {
@@ -4177,6 +4215,16 @@ class MainWindow(wx.Dialog):
                 notifMethods.values()), style=wx.CB_READONLY)
             notifMethod = notifMethods[self.getSettingOrigin("notif_method")]
             notifMethodsBox.SetStringSelection(notifMethod)
+            notification_days_limit_label = wx.StaticText(
+                settingsDial, label="Limite de &dias para exibir na lista de notificações (afeta apenas as notificações mostradas na lista):")
+            notification_days_limit = TextCtrl(settingsDial)
+            notification_days_limit.SetValue(
+                self.getSettingOrigin("notification_days_limit"))
+            notification_warning_hours_limit_label = wx.StaticText(
+                settingsDial, label="Limite de &horas para enviar notificações (afeta apenas os avisos de notificação, não a lista)")
+            notification_warning_hours_limit = TextCtrl(settingsDial)
+            notification_warning_hours_limit.SetValue(
+                self.getSettingOrigin("notification_warning_hours_limit"))
             maxChannelsLabel = wx.StaticText(
                 settingsDial, label="Núme&ro máximo de canais a notificar (recomendado 50. Quanto maior, mais lentas as notificações)")
             maxChannelsBox = TextCtrl(settingsDial)
@@ -4256,6 +4304,10 @@ class MainWindow(wx.Dialog):
                                       "Método de notificação incompatível", wx.OK | wx.ICON_ERROR, settingsDial)
                         return
                 self.setSettingOrigin(
+                    "notification_days_limit", notification_days_limit.GetValue())
+                self.setSettingOrigin(
+                    "notification_warning_hours_limit", notification_warning_hours_limit.GetValue())
+                self.setSettingOrigin(
                     "max_channels", maxChannelsBox.GetValue())
                 if start_with_windows.GetValue() == True:
                     self.set_windows_start()
@@ -4269,6 +4321,7 @@ class MainWindow(wx.Dialog):
                     self.setSetting("check_updates", True)
                     if not self.isCheckingUpdates and self.isFirstInstance:
                         self.startUpdateCheck()
+                        Thread(target=self.check_ytdl_updates).start()
                 else:
                     self.setSetting("check_updates", False)
                 self.setSetting("instance_shortcut", shortcutBox.GetValue())
@@ -4304,7 +4357,9 @@ class MainWindow(wx.Dialog):
             self, label="&Atualizar o programa manualmente")
 
         def onManualUpdate(event):
-            self.update()
+            download_url = "https://blind-center.com.br/downloads/blind_tube/blind_tube.zip"
+            wx.LaunchDefaultBrowser(download_url)
+
         self.updateBtn.Bind(wx.EVT_BUTTON, onManualUpdate)
         self.useTipsLabel = wx.StaticText(self, label="&Dicas de uso")
         tipsFile = openFile("dicas_de_uso.txt")
@@ -4358,5 +4413,6 @@ if not os.path.isfile("data/windows_start_set.txt"):
 
 if not "-b" in sys.argv:
     window.Show()
+    window.Maximize(True)
 app.MainLoop()
 sys.exit()
