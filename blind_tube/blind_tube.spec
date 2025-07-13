@@ -84,6 +84,7 @@ coll = COLLECT(
     upx_exclude=[],
     name='blind_tube',
 )
+shutil.copy("cookies.txt", dist)
 shutil.copy("ffmpeg.exe", dist)
 shutil.copy("yt-dlp.exe", dist)
 shutil.copy("python.ico", dist)

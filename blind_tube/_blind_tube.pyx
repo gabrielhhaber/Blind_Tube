@@ -998,7 +998,7 @@ class MainWindow(Dialog):
         self.video_is_loading = False
         self.download_canceled = False
         self.videos_with_error = []
-        self.currentVersion = "12/07/2025"
+        self.currentVersion = "13/07/2025"
         self.instanceChecker = wx.SingleInstanceChecker(self.appName)
         self.instanceData = instanceData
         if self.instanceData:
@@ -1318,6 +1318,7 @@ class MainWindow(Dialog):
         if result.returncode == 1:
             wx.CallAfter(
                 wx.MessageBox, f"Não foi possível carregar o vídeo solicitado. Ocorreu um problema com a ferramenta YT-DLP: {result.stderr}", "Erro ao carregar o vídeo", wx.OK | wx.ICON_ERROR, self)
+            self.video_is_loading = False
             return
         ytb_regex = re.compile(
             r"https://.+\.googlevideo\.com/videoplayback\?.+")
@@ -3862,10 +3863,6 @@ class MainWindow(Dialog):
         searchBox.Bind(wx.EVT_KEY_DOWN, onSearchKeyDown)
 
         def onSearch(event):
-            if searchBox.IsEmpty():
-                wx.MessageBox("Digite algo para pesquisar primeiro",
-                              "Campo de busca vazio", wx.OK | wx.ICON_ERROR, self)
-                return
             speak("Carregando resultados...")
             searchTerm = searchBox.GetValue()
 

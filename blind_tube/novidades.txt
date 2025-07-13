@@ -1,5 +1,24 @@
 Novidades das atualizações do Blind Tube
 
+Versão 13/07/2025:
+Agora, o Blind Tube passará cookies automaticamente para o YT-DLP ao carregar e baixar 
+vídeos. Por padrão, o Blind Tube já acompanha um arquivo de cookies em sua pasta principal, 
+mas você pode substituí-lo por outro de sua preferência, caso seja necessário ou se a conta 
+utilizada for banida temporariamente pelo YouTube.
+Isso significa que, agora, será possível assistir vídeos com restrição de idade diretamente pelo 
+player interno do Blind Tube. Além disso, os bloqueios pela proteção anti-bot do YouTube 
+devem ser menos frequentes.
+Para exportar seus próprios cookies, você deve fazer login no YouTube em uma guia anônima e 
+exportar os cookies do site através de uma extensão chamada Get Cookies.txt Locale. Para que 
+isso funcione, é necessário permitir o funcionamento desta extensão no modo anônimo do 
+navegador, já que os cookies expirarão se você usar uma guia padrão. O processo pode variar 
+conforme o navegador, mas não deve ser necessário para a grande maioria dos usuários, já que 
+o programa acompanha cookies padrão.
+Corrigido um possível bug em que não era possível pesquisar no Blind Tube, mesmo quando a 
+caixa de pesquisa tinha texto digitado.
+Corrigido um bug em que, após a mudança para a ferramenta de linha de comando do YT-DLP, 
+o programa não aceitaria mais carregar nenhum vídeo após um erro no YT-DLP.
+
 Versão 12/07/2025:
 Agora, o código de download e reprodução de vídeos foi totalmente reescrito para usar a 
 biblioteca yt-dlp.exe, ao invés do módulo Python usado anteriormente.
