@@ -34,6 +34,18 @@ Ctrl+k: copia o link do vídeo para a área de transferência
 Ctrl+Enter: abre o vídeo selecionado no navegador padrão (útil para lives e estreias, por 
 exemplo, que não são diretamente suportadas pelo Blind Tube).
 
+Atalhos do canal (disponíveis dentro de um canal ou no player, mas não em outras listas):
+Ctrl+d: exibe o nome do canal, a quantidade de inscritos e a quantidade de vídeos do mesmo. 
+Semelhante ao que aparece no campo de informações.
+Ctrl+y: exibe apenas o título do canal.
+Ctrl+shift+y: copia o título do canal para a área de transferência.
+Ctrl+s: exibe apenas a quantidade de inscritos do canal.
+Ctrl+o: exibe apenas a quantidade de vídeos do canal.
+Ctrl+n: copia o link do canal para a área de transferência.
+Ctrl+x: informa a data em que o canal foi criado.
+Observe que os atalhos foram ajustados para não conflitarem com os atalhos já existentes para 
+os vídeos, como Ctrl+k, Ctrl+l, Ctrl+t etc.
+
 Atalhos do player de vídeo:
 Estas teclas não funcionam quando você está posicionado em um campo de edição dentro do 
 player, como o da descrição ou o das informações do vídeo.

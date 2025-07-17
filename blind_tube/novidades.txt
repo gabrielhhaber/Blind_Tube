@@ -1,5 +1,56 @@
 Novidades das atualizações do Blind Tube
 
+Versão 17/07/2025:
+A funcionalidade de transcrições de vídeos, que havia quebrado nas versões anteriores do 
+programa, foi corrigida. Agora tanto as transcrições originais quanto as traduções devem ser 
+obtidas normalmente.
+Observe que a biblioteca usada para obter as transcrições, YouTube-Transcript-API, embora 
+tenha sido atualizada, tem apresentado comportamentos inconsistentes nos últimos dias. Por 
+vezes, ela não consegue recuperar as transcrições ou ocorre uma falha na requisição. Parece 
+estável no momento, mas, caso ocorram novos problemas, pode ser necessária uma 
+atualização extra para correção.
+Corrigido um problema em que, em algumas situações, a informação de se havia ou não um 
+vídeo carregando não era passada corretamente entre diferentes instâncias do programa, 
+impossibilitando o usuário de carregar novos vídeos até reiniciar o Blind Tube completamente.
+Agora, o Blind Tube não deverá mais enfrentar crashes ou fechamentos aleatórios ao 
+pressionar a tecla Enter várias vezes em uma janela, como ao tentar carregar vários vídeos de 
+uma vez ou tentar carregar vários canais.
+Além disso, o programa não deverá mais exibir janelas de erro de SSL quando isso ocorrer.
+Note que, por conta das modificações realizadas para tornar o programa mais estável e thread 
+safe, pode ocorrer um pequeno atraso ao carregar conteúdos, já que é criado um novo cliente 
+HTTP para cada solicitação realizada.
+Corrigidos alguns bugs envolvendo o salvamento de configurações e o espelhamento das 
+mesmas entre diferentes instâncias.
+Adicionada uma opção “sobre o programa” ao menu principal. Ela mostra algumas informações 
+básicas, como o desenvolvedor original do programa, licença e versão.
+Corrigido um problema em que a função de abrir vídeo no navegador padrão não funcionava 
+dentro do menu de notificações.
+Corrigido um possível bug em que, ao tentar abrir um vídeo no navegador padrão, o atalho 
+conflitava com a tecla Enter (carregar vídeo no próprio programa).
+Como parece ser algo específico do sistema operacional e de como cada versão do Windows 
+registra os eventos de teclado, o bug não pode ser reproduzido em todos os computadores, 
+mas foi adicionada uma instrução no código para bloquear essa interação dupla caso ocorra.
+Adicionados novos atalhos ao diálogo de canais. Eles também podem ser usados no player de 
+vídeo, mas não em listas onde nenhum canal esteja carregado (como a busca principal, por 
+exemplo):
+Ctrl+d: exibe o nome do canal, a quantidade de inscritos e a quantidade de vídeos do mesmo. 
+Semelhante ao que aparece no campo de informações.
+Ctrl+y: exibe apenas o título do canal.
+Ctrl+shift+y: copia o título do canal para a área de transferência.
+Ctrl+s: exibe apenas a quantidade de inscritos do canal.
+Ctrl+o: exibe apenas a quantidade de vídeos do canal.
+Ctrl+n: copia o link do canal para a área de transferência.
+Ctrl+x: informa a data em que o canal foi criado.
+Observe que os atalhos foram ajustados para não conflitarem com os atalhos já existentes para 
+os vídeos, como Ctrl+k, Ctrl+l, Ctrl+t etc.
+Agora, a função de atualização manual do menu principal foi melhorada. Antes de abrir o 
+navegador, será exibida uma caixa de diálogo perguntando se você deseja realmente fazer a 
+atualização manual. Caso responda que sim, todas as instâncias do Blind Tube serão fechadas e 
+o seu navegador será aberto para fazer o download.
+Observe que essa função só deve ser usada caso o programa, por algum motivo, não esteja 
+verificando as atualizações ou você tenha desativado essa função nas configurações. Caso 
+contrário, você deveria teoricamente estar já na última versão.
+
 Versão 13/07/2025:
 Agora, o Blind Tube passará cookies automaticamente para o YT-DLP ao carregar e baixar 
 vídeos. Por padrão, o Blind Tube já acompanha um arquivo de cookies em sua pasta principal, 
