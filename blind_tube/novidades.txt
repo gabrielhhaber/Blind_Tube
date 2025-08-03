@@ -1,5 +1,43 @@
 Novidades das atualizações do Blind Tube
 
+Versão 02/08/2025:
+Agora, um novo recurso de painéis está disponível no programa. Você pode facilmente navegar 
+entre as janelas principais e o player usando a tecla f6.
+Por exemplo, se você selecionar um vídeo dentro da lista de notificações e pressionar f6 
+enquanto o vídeo reproduz, você será colocado de volta na lista de notificações sem 
+interromper o vídeo em questão. Para voltar ao player, basta pressionar novamente a tecla f6.
+Note que o painel do player sempre acompanhará a instância em execução. Ou seja, você pode 
+sair livremente da lista em que estava e carregar outros conteúdos, e o player ainda continuará 
+em execução na mesma instância, estando disponível sempre pela tecla f6.
+Caso preferir, você também pode selecionar o vídeo que estava reproduzindo novamente na 
+lista, e poderá voltar ao player da mesma forma que ao pressionar f6 em uma lista.
+Para carregar outro vídeo, não é necessário fechar o player em execução. O Blind Tube 
+substituirá automaticamente o vídeo que estava tocando pelo novo selecionado.
+Agora, as playlists serão exibidas na lista de resultados de pesquisa, além dos vídeos e canais. 
+Você poderá entrar na playlist e assistir aos vídeos normalmente.
+Para encontrar as playlists, pressione as teclas alt+l nos resultados de pesquisa ou navegue com 
+tab até a lista de nome playlists.
+Corrigido um problema em que, ao realizar uma pesquisa, canais que não tivessem uma URL 
+personalizada poderiam gerar um erro em toda a pesquisa.
+Agora, os links de canais que não tenham uma URL personalizada serão copiados normalmente 
+com as teclas Ctrl+n.
+O atalho para verificar a quantidade de inscritos de um canal foi substituído por Ctrl+w. Isso 
+ocorre porque o atalho Ctrl+s já estava ocupado por outra função do player, a verificação de 
+tempo decorrido e restante. Isso permite usar o atalho normalmente dentro do player.
+A biblioteca de transcrições (youtube-transcript-api) foi atualizada novamente.
+Observe que a função de transcrição está funcionando normalmente, mas as traduções ainda 
+estão instáveis e problemáticas. Isso ainda está sendo verificado e será tratado em uma 
+atualização futura, se necessário. Caso queira obter a transcrição de um vídeo e não esteja 
+conseguindo, procure definir o idioma de transcrição para o idioma original do vídeo.
+Agora, ao abrir uma notificação de vídeo com as teclas Ctrl+shift+n, o vídeo será aberto em 
+uma nova instância do Blind Tube, não na instância principal.
+Isso evita que algum conteúdo que você estiver acessando desapareça caso esteja na instância 
+inicial do programa.
+Nas notificações de novos vídeos, foi retirado o aviso de pressione Ctrl+shift+n para abrir o 
+vídeo (não documentado na atualização anterior). Isso foi feito para evitar repetições na leitura 
+e tornar tudo mais dinâmico quando se está com a opção de atalho de novo vídeo ativada nas 
+configurações.
+
 Versão 17/07/2025:
 A funcionalidade de transcrições de vídeos, que havia quebrado nas versões anteriores do 
 programa, foi corrigida. Agora tanto as transcrições originais quanto as traduções devem ser 

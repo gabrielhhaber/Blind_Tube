@@ -67,7 +67,6 @@ LoadEvent, EVT_LOAD = NewEvent()
 VideoEndEvent, EVT_VIDEO_END = NewEvent()
 NewVideosEvent, EVT_NEW_VIDEOS = NewEvent()
 VideoCloseEvent, EVT_VIDEO_CLOSE = NewEvent()
-InstanceEvent, EVT_INSTANCE = NewEvent()
 UpdaterEvent, EVT_UPDATER = NewEvent()
 NotifSelectedEvent, EVT_NOTIF_SELECT = NewEvent()
 PassEvent, EVT_PASS = NewEvent()
@@ -82,13 +81,17 @@ class CustomThread(Thread):
 
 
 class Dialog(wx.Dialog):
-    def __init__(self, prevWindow, title, closePrev=True):
+    def __init__(self, window, prevWindow, title, closePrev=True, assign_player_input=True):
+        self.window = window
         self.prevWindow = prevWindow
         self.closePrev = closePrev
+        self.assign_player_input = assign_player_input
         if self.closePrev:
             super().__init__(None, title=title, style=wx.DIALOG_NO_PARENT)
         else:
             super().__init__(prevWindow, title=title)
+        if self.window and self.assign_player_input:
+            self.Bind(wx.EVT_CHAR_HOOK, self.on_player_parent_keys)
 
     def Show(self, *args, **kwargs):
         if self.closePrev:
@@ -97,7 +100,17 @@ class Dialog(wx.Dialog):
                     self.prevWindow.Hide()
             except Exception as e:
                 pass
+        if self.assign_player_input:
+            self.window.current_player_parent = self
         super().Show()
+
+    def on_player_parent_keys(self, event):
+        key_code = event.GetKeyCode()
+        if key_code == wx.WXK_F6 and self.window.current_player_window:
+            self.Hide()
+            self.window.current_player_window.Show()
+        else:
+            event.Skip()
 
 
 class TextCtrl(wx.TextCtrl):
@@ -156,6 +169,9 @@ class VideosList(List):
         def onVideoSelect(event, videosList, videoData, videosData=None, isPlaylist=False, playlistData=None, playlistItems=None):
             if self.window.video_is_loading:
                 speak("Aguarde. Outro vídeo já está carregando.")
+                return
+            elif self.window.current_player_window and self.window.current_video_id == videoData["id"]:
+                self.window.current_player_window.Show()
                 return
             if wx.GetKeyState(wx.WXK_CONTROL):
                 return
@@ -222,7 +238,7 @@ contactEmail = "credenciais.blindtube@gmail.com"
 
 
 def showCredDial():
-    credDial = Dialog(None, title="Blind Tube")
+    credDial = Dialog(None, None, title="Blind Tube")
     credText = wx.StaticText(
         credDial, label=f"No momento, você ainda não possui uma credencial de acesso ao Blind Tube. A partir da atualização de julho de 2024, não é mais possível fazer login sem uma credencial própria de acesso. Para solicitar uma, envie um e-mail para {contactEmail} ou, caso seja mais experiente, siga o tutorial de criação de credencial, disponível na pasta do programa com o nome tutorial_criação_de_credencial.txt.")
     copyEmail = wx.Button(
@@ -248,7 +264,8 @@ credsFile.close()
 
 
 def onQuotaExceeded(event):
-    quotaDial = Dialog(None, title="Cota de uso excedida", closePrev=False)
+    quotaDial = Dialog(
+        None, None, title="Cota de uso excedida", closePrev=False)
     quotaInfo = wx.StaticText(quotaDial, label="Sua cota diária particular de uso do Blind Tube foi excedida. Caso você realize uso mais intenso do programa e necessite de duas credenciais particulares de acesso, entre em contato pelo e-mail credenciais.blindtube@gmail.com, explicando sua necessidade. Clique em ok para fechar o programa.")
     copyEmail = wx.Button(
         quotaDial, label="&Copiar endereço de e-mail para a área de transferência")
@@ -307,7 +324,7 @@ def threadExcHandler(args):
 
 
 def showError(errorDetails):
-    errorDial = Dialog(None, title="Erro do Blind Tube", closePrev=False)
+    errorDial = Dialog(None, None, title="Erro do Blind Tube", closePrev=False)
     errorBox = TextCtrl(errorDial, style=wx.TE_MULTILINE |
                         wx.TE_READONLY | wx.TE_DONTWRAP, value="")
     for detail in errorDetails:
@@ -518,7 +535,7 @@ def getChannelData(channel):
     channelData = {
         "id": channel["id"],
         "channelTitle": channel["snippet"]["title"],
-        "customUrl": channel["snippet"]["customUrl"],
+        "customUrl": channel["snippet"].get("customUrl") or f"https://www.youtube.com/channel/{channel['id']}",
         "about": channel["snippet"].get("description", "Este canal não possui descrição"),
         "createdAt": createdAt,
         "videoCount": channel["statistics"]["videoCount"],
@@ -533,15 +550,6 @@ def getChannelData(channel):
     else:
         channelData["isSubscribed"] = False
     return channelData
-
-
-def addPlaylist(list, playlistData):
-    if playlistData["itemCount"] != 1:
-        list.Append(("{} ({} vídeos)".format(
-            playlistData["title"], playlistData["itemCount"]),))
-    else:
-        list.Append(("{} ({} vídeo)".format(
-            playlistData["title"], playlistData["itemCount"]),))
 
 
 def onSubscribe(event, channelData):
@@ -756,19 +764,6 @@ def getDatesDiferense(newDate):
     return difStr
 
 
-def onWindowClose(event):
-    currentObject = event.GetEventObject()
-    objectToClose = getParentWindow(currentObject)
-    objectToClose.Destroy()
-    if not wx.GetKeyState(wx.WXK_ALT):
-        prevObject = objectToClose.prevWindow
-        try:
-            if not prevObject.IsShown():
-                prevObject.Show()
-        except Exception as e:
-            pass
-
-
 def wantToCreate(folder):
     answer = wx.MessageBox("A pasta especificada para o download não existe. Deseja criá-la?",
                            "Pasta inexistente", wx.YES_NO | wx.ICON_QUESTION)
@@ -894,14 +889,19 @@ def build_ytb(creds):
 
 class MainWindow(Dialog):
     def __init__(self, parent, title, instanceData=None):
-        super().__init__(parent, title=title, closePrev=False)
+        super().__init__(self, parent, title=title, closePrev=False)
         self.appName = "Blind_Tube"+wx.GetUserId()
+        self.instance_is_open = True
         self.video_is_loading = False
+        self.current_player_parent = None
+        self.current_player_window = None
+        self.current_video_id = 0
         self.download_canceled = False
         self.videos_with_error = []
+        self.yttransc = YouTubeTranscriptApi()
         self.transcript = []
         self.currentLanguageCode = 0
-        self.currentVersion = "17/07/2025"
+        self.currentVersion = "02/08/2025"
         self.instanceChecker = wx.SingleInstanceChecker(self.appName)
         self.instanceData = instanceData
         if self.instanceData:
@@ -1047,6 +1047,30 @@ class MainWindow(Dialog):
         if not self.isNotifying:
             CustomThread(target=checkVideos).start()
 
+    def open_instance(self):
+        instanceData = {
+            "mainSubs": self.mainSubs,
+            "allSubs": self.allSubs,
+        }
+        newWindow = MainWindow(
+            None, "Blind Tube", instanceData=instanceData)
+        newWindow.Show()
+        newWindow.Maximize(True)
+
+    def on_window_close(self, event):
+        currentObject = event.GetEventObject()
+        objectToClose = getParentWindow(currentObject)
+        objectToClose.Destroy()
+        if not wx.GetKeyState(wx.WXK_ALT):
+            prevObject = objectToClose.prevWindow
+            try:
+                if not prevObject.IsShown():
+                    prevObject.Show()
+            except Exception as e:
+                pass
+        else:
+            self.instance_is_open = False
+
     def keep_login(self):
         global creds
         global yt
@@ -1154,16 +1178,17 @@ class MainWindow(Dialog):
                 else:
                     pyperclip.copy(channel_data["channelTitle"])
                     speak("Título do canal copiado.")
-            elif key_code == ord("S"):
+            elif key_code == ord("W"):
                 speak(
                     f"{channel_data['subscriberCount']} inscrito{'s' if channel_data['subscriberCount'] != '1' else ''}")
             elif key_code == ord("O"):
                 speak(
                     f"{channel_data['videoCount']} vídeo{'s' if channel_data['videoCount'] != 1 else ''}")
             elif key_code == ord("X"):
-                speak(f"Criado em: {channel_data['createdAt'].strftime('%d/%m/%Y, às %#H:%M.')}")
+                speak(
+                    f"Criado em: {channel_data['createdAt'].strftime('%d/%m/%Y, às %#H:%M.')}")
             elif key_code == ord("N"):
-                link = f"HTTPS://www.youtube.com/{channel_data['customUrl']}"
+                link = f"https://www.youtube.com/{channel_data.get('customUrl')}" or f"https://www.youtube.com/channel/{channel_data['id']}"
                 pyperclip.copy(link)
                 speak("Link do canal copiado")
             else:
@@ -1250,22 +1275,15 @@ class MainWindow(Dialog):
         killProgram()
 
     def onNewWindow(self):
-        def openInstance(event):
-            instanceData = {
-                "mainSubs": self.mainSubs,
-                "allSubs": self.allSubs,
-            }
-            newWindow = MainWindow(
-                None, "Blind Tube", instanceData=instanceData)
-            newWindow.Show()
-            newWindow.Maximize(True)
-            speak("Nova instância do Blind Tube carregada. Caso não esteja selecionada, você pode encontrá-la mantendo pressionada a tecla alt e depois pressionando tab múltiplas vezes.")
-        self.Bind(EVT_INSTANCE, openInstance)
-        wx.PostEvent(self, InstanceEvent())
+        wx.CallAfter(self.open_instance)
+        speak("Nova instância do Blind Tube carregada. Caso não esteja selecionada, você pode encontrá-la mantendo pressionada a tecla alt e depois pressionando tab múltiplas vezes.")
 
     def onNotifClicked(self, videoData):
         if self.video_is_loading:
             speak("Aguarde. Outro vídeo já está carregando.")
+            return
+        elif self.window.current_player_window and self.window.current_video_id == videoData["id"]:
+            self.window.current_player_window.Show()
             return
         speak("Carregando vídeo...")
         self.video_is_loading = True
@@ -1280,16 +1298,18 @@ class MainWindow(Dialog):
             if not self.notifiedVideo:
                 speak("Você ainda não recebeu nenhuma notificação de vídeo.")
                 return
-            if self.video_is_loading:
-                speak("Aguarde. Outro vídeo já está carregando.")
-                return
             speak("Carregando vídeo...")
-            self.video_is_loading = True
             videos = yt.videos().list(part="id,snippet,statistics,contentDetails",
                                       id=self.notifiedVideo).execute()
             video = videos["items"][0]
             videoData = getVideoData(video)
-            self.playVideo(self, videoData)
+            new_instance = MainWindow(None, "Blind Tube", instanceData={
+                "mainSubs": self.mainSubs,
+                "allSubs": self.allSubs
+            })
+
+            CustomThread(target=new_instance.playVideo,
+                         args=(new_instance, videoData)).start()
         self.Bind(EVT_NOTIF_SELECT, loadNotifVideo)
         wx.PostEvent(self, NotifSelectedEvent())
 
@@ -1362,7 +1382,7 @@ class MainWindow(Dialog):
         videoTitle = fixChars(videoTitle)
         url = baseUrl + video_id
         download_dial = Dialog(
-            currentWindow, title="Baixar vídeo", closePrev=False)
+            self, currentWindow, title="Baixar vídeo", closePrev=False, assign_player_input=False)
         folderLabel = wx.StaticText(
             download_dial, label="&Pasta para salvar o arquivo (deixe em branco para salvar na pasta do programa)")
         folderBox = TextCtrl(download_dial, style=wx.TE_DONTWRAP)
@@ -1379,7 +1399,7 @@ class MainWindow(Dialog):
         nameBox.SetValue(videoTitle)
         confirmButton = wx.Button(download_dial, wx.ID_OK, "&Baixar")
         cancelButton = wx.Button(download_dial, wx.ID_CANCEL, "&Cancelar")
-        cancelButton.Bind(wx.EVT_BUTTON, onWindowClose)
+        cancelButton.Bind(wx.EVT_BUTTON, self.on_window_close)
 
         def onConfirm(event):
             folder = folderBox.GetValue()
@@ -1400,7 +1420,7 @@ class MainWindow(Dialog):
             fileName += ".mp4"
             file_path = os.path.join(folder, fileName)
             downloading_dial = Dialog(
-                download_dial, title="Baixando vídeo", closePrev=False)
+                self, download_dial, title="Baixando vídeo", closePrev=False, assign_player_input=False)
             download_progress = wx.Gauge(downloading_dial)
             cancelDownload = wx.Button(downloading_dial, label="&Cancelar")
 
@@ -1564,7 +1584,7 @@ class MainWindow(Dialog):
                 self.videos_with_error.append(videoTitle)
                 time.sleep(1)
 
-    def loadPlaylist(self, currentWindow, playlistData):
+    def load_playlist(self, currentWindow, playlistData):
         yt = build_ytb(creds)
         playlistItems = yt.playlistItems().list(
             part="snippet,status", playlistId=playlistData["id"], maxResults=50).execute()
@@ -1598,15 +1618,31 @@ class MainWindow(Dialog):
             list.Append(
                 (f"{channelTitle} tem {channelData['subscriberCount']} inscrito e {channelData['videoCount']} vídeo",))
 
+    def add_playlist(self, list, playlistData):
+        if playlistData["itemCount"] != 1:
+            list.Append(("{} ({} vídeos)".format(
+                playlistData["title"], playlistData["itemCount"]),))
+        else:
+            list.Append(("{} ({} vídeo)".format(
+                playlistData["title"], playlistData["itemCount"]),))
+
+    def on_playlist_selected(self, event, current_window, playlists_list, playlists_data):
+        speak("Carregando playlist...")
+        item = playlists_list.GetFocusedItem()
+        playlist_data = playlists_data[item]
+        playlist_id = playlist_data["id"]
+        CustomThread(target=self.load_playlist, args=(
+            current_window, playlist_data)).start()
+
     def onPlaylistLoaded(self, event):
         currentWindow = event.currentWindow
         videos = event.videos
         playlistData = event.playlistData
         playlistItems = event.playlistItems
         playlistDial = Dialog(
-            currentWindow, title="Playlist "+playlistData["title"])
+            self, currentWindow, title="Playlist "+playlistData["title"])
         playlistClose = wx.Button(playlistDial, wx.ID_CANCEL, "Voltar")
-        playlistClose.Bind(wx.EVT_BUTTON, onWindowClose)
+        playlistClose.Bind(wx.EVT_BUTTON, self.on_window_close)
         videosLabel = wx.StaticText(playlistDial, label="&Vídeos da playlist")
         videosList = VideosList(self, playlistDial, title="Vídeos da playlist",
                                 isPlaylist=True, playlistData=playlistData, playlistItems=playlistItems)
@@ -1621,7 +1657,7 @@ class MainWindow(Dialog):
 
         def onPlaylistDownload(event):
             download_dial = Dialog(
-                playlistDial, title="Baixar playlist", closePrev=False)
+                self, playlistDial, title="Baixar playlist", closePrev=False)
             folderLabel = wx.StaticText(
                 download_dial, label="&Pasta para salvar os vídeos (será criada uma pasta com o nome da playlist dentro dela)")
             folderBox = TextCtrl(download_dial, style=wx.TE_DONTWRAP)
@@ -1634,7 +1670,7 @@ class MainWindow(Dialog):
                 download_dial, choices=formatList, value=defaultFormat)
             confirmButton = wx.Button(download_dial, label="&Baixar")
             cancelButton = wx.Button(download_dial, wx.ID_CANCEL, "&Cancelar")
-            cancelButton.Bind(wx.EVT_BUTTON, onWindowClose)
+            cancelButton.Bind(wx.EVT_BUTTON, self.on_window_close)
 
             def onConfirm(event):
                 folder = folderBox.GetValue()
@@ -1648,7 +1684,7 @@ class MainWindow(Dialog):
                 self.download_canceled = False
                 self.videos_with_error = []
                 downloading_dial = Dialog(
-                    download_dial, title="Baixando playlist", closePrev=False)
+                    self, download_dial, title="Baixando playlist", closePrev=False)
                 download_progress = wx.Gauge(downloading_dial)
 
                 cancelDownload = wx.Button(downloading_dial, label="&Cancelar")
@@ -1663,7 +1699,7 @@ class MainWindow(Dialog):
                     self.playSound("downloaded")
                     if self.videos_with_error:
                         warningDial = Dialog(
-                            downloading_dial, title="Aviso", closePrev=False)
+                            self, downloading_dial, title="Aviso", closePrev=False)
                         warningText = wx.StaticText(
                             warningDial, label="Alguns vídeos desta playlist não puderam ser baixados. Isso pode ter ocorrido devido a problemas de conexão, ou algo relacionado a esses vídeos específicos. Se desejar tentar baixá-los novamente, clique em baixar playlist ao fechar este diálogo.")
                         warningBoxText = wx.StaticText(
@@ -1794,7 +1830,10 @@ class MainWindow(Dialog):
             channelData = event.channelData
             windowTitle = videoData["videoTitle"]+" - Blind Tube"
             videoEnded = False
-            playerDial = Dialog(currentWindow, title=windowTitle)
+            playerDial = Dialog(self, currentWindow,
+                                title=windowTitle, assign_player_input=False)
+            self.current_player_window = playerDial
+            self.current_video_id = videoData["id"]
             playerDial.Bind(wx.EVT_CHAR_HOOK,
                             lambda event: self.on_video_char(event, videoData, channelData))
             playerDial.Bind(
@@ -1816,6 +1855,10 @@ class MainWindow(Dialog):
                                     "Não é possível continuar avançando, pois o vídeo ainda está carregando", interrupt=True)
                         else:
                             event.Skip()
+                    elif keyCode == wx.WXK_F6:
+                        if self.current_player_parent and self.current_player_window:
+                            self.current_player_window.Hide()
+                            self.current_player_parent.Show()
                     elif keyCode == wx.WXK_DOWN:
                         if not focused(TextCtrl, playerDial) and not focused(wx.Slider, playerDial):
                             currentVolume = videoStream.get_volume()
@@ -1999,7 +2042,7 @@ class MainWindow(Dialog):
 
             def on_chapters_open(event):
                 chapters_dial = Dialog(
-                    playerDial, title="Lista de capítulos", closePrev=False)
+                    self, playerDial, title="Lista de capítulos", closePrev=False, assign_player_input=False)
                 chapters_listing_label = wx.StaticText(
                     chapters_dial, label="&Capítulos")
                 chapters_listing = List(
@@ -2259,7 +2302,7 @@ class MainWindow(Dialog):
                     backOriginVolume.Enable(True)
                     volumeDial.Destroy()
                 volumeDial = Dialog(
-                    playerDial, title="Definir volume personalizado", closePrev=False)
+                    self, playerDial, title="Definir volume personalizado", closePrev=False, assign_player_input=False)
                 volumeBoxLabel = wx.StaticText(
                     volumeDial, label="&Volume personalizado (até 1000)")
                 volumeBox = TextCtrl(
@@ -2316,8 +2359,8 @@ class MainWindow(Dialog):
                     newBytesPosition = videoStream.seconds_to_bytes(
                         totalSeconds)
                     oldPosition = videoStream.get_position()
-                    passingDial = wx.Dialog(
-                        passDial, title="Passando até "+tipedPos+"...")
+                    passingDial = Dialog(
+                        self, passDial, title="Passando até "+tipedPos+"...", closePrev=False, assign_player_input=False)
                     cancelPass = wx.Button(passingDial, label="&Cancelar")
 
                     def onPassCancel(event):
@@ -2337,7 +2380,8 @@ class MainWindow(Dialog):
                     CustomThread(target=pass_to, args=(
                         newBytesPosition,)).start()
                     passingDial.Show()
-                passDial = wx.Dialog(playerDial, title="Ir para a posição")
+                passDial = Dialog(self, playerDial, title="Ir para a posição",
+                                  closePrev=False, assign_player_input=False)
                 posLabel = wx.StaticText(
                     passDial, label="Informe a &posição desejada, no formato hora dois pontos minuto dois pontos segundo (ou apenas minuto dois pontos segundo)")
                 posBox = TextCtrl(
@@ -2373,7 +2417,7 @@ class MainWindow(Dialog):
             def onTranscript(event):
                 def getTranscript():
                     try:
-                        transcript = YouTubeTranscriptApi.list_transcripts(
+                        transcript = self.yttransc.list(
                             videoData["id"]).find_transcript([self.currentLanguageCode]).fetch()
                         self.transcript = transcript
                     except Exception as e:
@@ -2386,13 +2430,13 @@ class MainWindow(Dialog):
                             wantTranslate = wx.YES
                         if wantTranslate == wx.YES:
                             try:
-                                transcriptList = YouTubeTranscriptApi.list_transcripts(
+                                transcriptList = self.yttransc.list(
                                     videoData["id"])
                                 for originTranscript in transcriptList:
                                     if originTranscript.is_translatable:
                                         transcript = originTranscript.translate(
                                             self.currentLanguageCode)
-                                        self.transcript = transcript.fetch().snippets
+                                        self.transcript = transcript.fetch()
                                         break
                             except Exception as e:
                                 wx.MessageBox("Não foi possível traduzir a transcrição. Caso queira obter a transcrição no idioma original, altere o idioma da transcrição pressionando as teclas alt+ç no player de vídeo.",
@@ -2644,7 +2688,7 @@ class MainWindow(Dialog):
 
                     def onGoToChannel(event):
                         speak("Carregando canal do autor...")
-                        CustomThread(target=self.loadChannel, args=(
+                        CustomThread(target=self.load_channel, args=(
                             commentData["authorId"], commentsWindow)).start()
                     goToChannel.Bind(wx.EVT_BUTTON, onGoToChannel)
                     replyLabel = wx.StaticText(
@@ -2716,8 +2760,8 @@ class MainWindow(Dialog):
 
                         def onRepliesLoaded(event):
                             repliesData = event.repliesData
-                            repliesDial = wx.Dialog(
-                                commentsWindow, title="Respostas")
+                            repliesDial = Dialog(
+                                self, commentsWindow, title="Respostas", closePrev=False, assign_player_input=False)
                             repliesClose = wx.Button(
                                 repliesDial, wx.ID_CANCEL, "Voltar")
 
@@ -2741,7 +2785,7 @@ class MainWindow(Dialog):
 
                             def onGoToChannel(event):
                                 speak("Carregando canal do autor...")
-                                CustomThread(target=self.loadChannel, args=(
+                                CustomThread(target=self.load_channel, args=(
                                     replyData["authorId"], repliesDial)).start()
                             goToChannel.Bind(wx.EVT_BUTTON, onGoToChannel)
                             replyLabel = wx.StaticText(
@@ -3013,7 +3057,7 @@ class MainWindow(Dialog):
 
             def onGoToChannel(event):
                 speak("Carregando canal do autor...")
-                CustomThread(target=self.loadChannel, args=(
+                CustomThread(target=self.load_channel, args=(
                     channelData["id"], playerDial)).start()
             goToChannel.Bind(wx.EVT_BUTTON, onGoToChannel)
             if not channelData["isSubscribed"]:
@@ -3036,12 +3080,15 @@ class MainWindow(Dialog):
                 videoEnded = True
                 if isPlaylist:
                     self.shouldPlayNext = False
-                playerDial.Destroy()
-                if not wx.GetKeyState(wx.WXK_ALT):
-                    currentWindow.Show()
+                if self.current_player_window:
+                    self.current_player_window.Destroy()
+                if self.current_player_parent and not wx.GetKeyState(wx.WXK_ALT):
+                    self.current_player_parent.Show()
                     if isAuto:
                         wx.PostEvent(currentWindow, VideoCloseEvent(
                             videoPos=videoPosOnPlaylist))
+                self.current_player_window = None
+                self.current_video_id = 0
             closeButton = wx.Button(playerDial, wx.ID_CANCEL, "Fechar vídeo")
             closeButton.Bind(wx.EVT_BUTTON, onPlayerClose)
             playerDial.Bind(wx.EVT_CLOSE, onPlayerClose)
@@ -3053,6 +3100,12 @@ class MainWindow(Dialog):
                 while True:
                     time.sleep(0.25)
                     if not videoStream.isLoaded:
+                        break
+                    if not self.instance_is_open:
+                        try:
+                            videoStream.free()
+                        except Exception as e:
+                            pass
                         break
                     if videoStream.length_in_seconds() - videoStream.bytes_to_seconds() <= 0.05:
                         if not videoEnded:
@@ -3128,7 +3181,8 @@ class MainWindow(Dialog):
                 videoPosition = videoPosition.strip()
                 videoList = videoPosition.split(":")
                 if videoData["id"] == videoList[0]:
-                    resumeDial = wx.Dialog(playerDial, title="Retomando vídeo")
+                    resumeDial = Dialog(
+                        self, playerDial, title="Retomando vídeo", closePrev=False, assign_player_input=False)
                     cancelResume = wx.Button(resumeDial, label="&Cancelar")
 
                     def onResumeCancel(event):
@@ -3159,7 +3213,7 @@ class MainWindow(Dialog):
         wx.PostEvent(currentWindow, LoadEvent(currentWindow=currentWindow, videoStream=videoStream, videoData=videoData, videosData=videosData, isPlaylist=isPlaylist,
                      isAuto=isAuto, playlistData=playlistData, playlistItems=playlistItems, oldWindow=oldWindow, oldStream=oldStream, channelData=channelData))
 
-    def loadChannel(self, channelId, currentWindow):
+    def load_channel(self, channelId, currentWindow):
         yt = build_ytb(creds)
         channelResults = yt.channels().list(
             part="id,snippet,statistics", id=channelId).execute()
@@ -3218,9 +3272,9 @@ class MainWindow(Dialog):
             channelTitle = channelData["channelTitle"]
         else:
             channelTitle = channelData["channelTitle"].title()
-        channelDial = Dialog(currentWindow, title=channelTitle)
+        channelDial = Dialog(self, currentWindow, title=channelTitle)
         channelClose = wx.Button(channelDial, wx.ID_CANCEL, "Voltar")
-        channelClose.Bind(wx.EVT_BUTTON, onWindowClose)
+        channelClose.Bind(wx.EVT_BUTTON, self.on_window_close)
         videosLabel = wx.StaticText(channelDial, label="&Vídeos do canal")
         videosList = VideosList(
             self, channelDial, title="&Vídeos do canal", isChannel=True)
@@ -3625,10 +3679,10 @@ class MainWindow(Dialog):
                 playlists = event.playlists
                 channelData = event.channelData
                 playlistsDial = Dialog(
-                    channelDial, title="Playlists de "+channelData["channelTitle"])
+                    self, channelDial, title="Playlists de "+channelData["channelTitle"])
                 playlistsClose = wx.Button(
                     playlistsDial, wx.ID_CANCEL, "Voltar")
-                playlistsClose.Bind(wx.EVT_BUTTON, onWindowClose)
+                playlistsClose.Bind(wx.EVT_BUTTON, self.on_window_close)
                 playlistsLabel = wx.StaticText(
                     playlistsDial, label="&Playlists")
                 playlistsList = List(playlistsDial, title="Playlists")
@@ -3637,13 +3691,13 @@ class MainWindow(Dialog):
                 for playlist in playlists.get("items", []):
                     playlistData = getPlaylistData(playlist)
                     playlistsData.append(playlistData)
-                    addPlaylist(playlistsList, playlistData)
+                    self.add_playlist(playlistsList, playlistData)
 
                 def onPlaylistSelected(event):
                     speak("Carregando playlist...")
                     item = event.GetIndex()
                     playlistData = playlistsData[item]
-                    CustomThread(target=self.loadPlaylist, args=(
+                    CustomThread(target=self.load_playlist, args=(
                         playlistsDial, playlistData,)).start()
                 playlistsList.Bind(
                     wx.EVT_LIST_ITEM_ACTIVATED, onPlaylistSelected)
@@ -3670,7 +3724,7 @@ class MainWindow(Dialog):
                         for playlist in playlists.get("items", []):
                             playlistData = getPlaylistData(playlist)
                             playlistsData.append(playlistData)
-                            addPlaylist(playlistsList, playlistData)
+                            self.add_playlist(playlistsList, playlistData)
                         speak("Playlists carregadas.", interrupt=True)
                         if not "nextPageToken" in playlists:
                             speak("Fim das playlists.")
@@ -3685,7 +3739,7 @@ class MainWindow(Dialog):
         def onChannelSettings(event):
             channelId = channelData["id"]
             channelSetDial = Dialog(
-                channelDial, title="Configurações do canal "+channelData["channelTitle"])
+                self, channelDial, title="Configurações do canal "+channelData["channelTitle"])
             defaultSpeedLabel = wx.StaticText(
                 channelSetDial, label="Velocidad&e padrão para os vídeos do canal")
             speedsList = ["Padrão"]+list(videoSpeeds.keys())
@@ -3737,16 +3791,16 @@ class MainWindow(Dialog):
                         "default_transcript_language", languageDict[newTranscriptLanguage], channelId)
                 with open("blind_tube.ini", "w") as configFile:
                     self.conf.write(configFile)
-                onWindowClose(event)
+                self.on_window_close(event)
             ok.Bind(wx.EVT_BUTTON, onOk)
             cancel = wx.Button(channelSetDial, wx.ID_CANCEL, "Cancelar")
-            cancel.Bind(wx.EVT_BUTTON, onWindowClose)
+            cancel.Bind(wx.EVT_BUTTON, self.on_window_close)
             channelSetDial.Show()
         channelSettings.Bind(wx.EVT_BUTTON, onChannelSettings)
 
         def onChannelDownload(event):
             download_dial = Dialog(
-                channelDial, title="Baixar canal", closePrev=False)
+                self, channelDial, title="Baixar canal", closePrev=False)
             folderLabel = wx.StaticText(
                 download_dial, label="&Pasta para salvar os vídeos (será criada uma pasta com o nome do canal dentro dela)")
             folderBox = TextCtrl(download_dial, style=wx.TE_DONTWRAP)
@@ -3759,7 +3813,7 @@ class MainWindow(Dialog):
                 download_dial, choices=formatList, value=defaultFormat)
             confirmButton = wx.Button(download_dial, label="&Baixar")
             cancelButton = wx.Button(download_dial, wx.ID_CANCEL, "&Cancelar")
-            cancelButton.Bind(wx.EVT_BUTTON, onWindowClose)
+            cancelButton.Bind(wx.EVT_BUTTON, self.on_window_close)
 
             def onConfirm(event):
                 folder = folderBox.GetValue()
@@ -3773,7 +3827,7 @@ class MainWindow(Dialog):
                 self.download_canceled = False
                 self.videos_with_error = []
                 downloading_dial = Dialog(
-                    download_dial, title="Baixando canal", closePrev=False)
+                    self, download_dial, title="Baixando canal", closePrev=False)
                 download_progress = wx.Gauge(downloading_dial)
 
                 cancelDownload = wx.Button(downloading_dial, label="&Cancelar")
@@ -3788,7 +3842,7 @@ class MainWindow(Dialog):
                     self.playSound("downloaded")
                     if self.videos_with_error:
                         warningDial = Dialog(
-                            downloading_dial, title="Aviso", closePrev=False)
+                            self, downloading_dial, title="Aviso", closePrev=False)
                         warningText = wx.StaticText(
                             warningDial, label="Alguns vídeos deste canal não puderam ser baixados. Isso pode ter ocorrido devido a problemas de conexão, ou a algum problema com esses vídeos específicos. Se desejar tentar baixá-los novamente, clique em baixar canal ao fechar este diálogo.")
                         warningBoxText = wx.StaticText(
@@ -3958,27 +4012,34 @@ class MainWindow(Dialog):
                 searchResults = yt.search().list(part="id", q=searchTerm, maxResults=50).execute()
                 videoIds = []
                 channelIds = []
+                playlist_ids = []
                 for result in searchResults.get("items", []):
                     if result["id"]["kind"] == "youtube#channel":
                         channelIds.append(result["id"]["channelId"])
                     elif result["id"]["kind"] == "youtube#video":
                         videoIds.append(result["id"]["videoId"])
+                    elif result["id"]["kind"] == "youtube#playlist":
+                        playlist_ids.append(result["id"]["playlistId"])
                 channelIds = ",".join(channelIds)
                 videoIds = ",".join(videoIds)
-                channels = yt.channels().list(part="id,snippet,statistics", id=channelIds).execute()
+                playlist_ids = ",".join(playlist_ids)
+                channels = yt.channels().list(part="id,snippet,statistics",
+                                              id=channelIds, maxResults=50).execute()
                 videos = yt.videos().list(
                     part="id,snippet,statistics,contentDetails", id=videoIds).execute()
+                playlists = yt.playlists().list(part="id,snippet,contentDetails",
+                                                id=playlist_ids, maxResults=50).execute()
                 self.Bind(EVT_LOAD, onResultsLoaded)
                 wx.PostEvent(self, LoadEvent(
-                    searchResults=searchResults, videos=videos, channels=channels))
+                    searchResults=searchResults, videos=videos, channels=channels, playlists=playlists))
             CustomThread(target=search).start()
 
             def onResultsLoaded(event):
                 searchResults = event.searchResults
                 resultsDial = Dialog(
-                    self, title="Resultados da pesquisa por "+searchTerm)
+                    self, self, title="Resultados da pesquisa por "+searchTerm)
                 resultsClose = wx.Button(resultsDial, wx.ID_CANCEL, "Voltar")
-                resultsClose.Bind(wx.EVT_BUTTON, onWindowClose)
+                resultsClose.Bind(wx.EVT_BUTTON, self.on_window_close)
                 videosLabel = wx.StaticText(resultsDial, label="&Vídeos")
                 videosList = VideosList(self, resultsDial, title="&Vídeos")
                 videosList.SetFocus()
@@ -3987,17 +4048,25 @@ class MainWindow(Dialog):
                     speak("Carregando canal do autor...")
                     videoData = videosList.videoData
                     channelId = videoData["channelId"]
-                    CustomThread(target=self.loadChannel, args=(
+                    CustomThread(target=self.load_channel, args=(
                         channelId, resultsDial)).start()
                 videosList.goToChannel.Bind(wx.EVT_BUTTON, onGoToChannel)
                 channelsLabel = wx.StaticText(resultsDial, label="Ca&nais")
                 channelsList = List(resultsDial, title="Canais")
+                playlists_label = wx.StaticText(
+                    resultsDial, label="Play&lists")
+                playlists_list = List(resultsDial, title="Playlists")
                 channelsData = []
                 videosData = []
+                playlists_data = []
                 for channel in event.channels.get("items", []):
                     channelData = getChannelData(channel)
                     self.add_channel(channelsList, channelData)
                     channelsData.append(channelData)
+                for playlist in event.playlists.get("items", []):
+                    playlist_data = getPlaylistData(playlist)
+                    self.add_playlist(playlists_list, playlist_data)
+                    playlists_data.append(playlist_data)
                 for video in event.videos.get("items", []):
                     try:
                         videoData = getVideoData(video)
@@ -4011,10 +4080,12 @@ class MainWindow(Dialog):
                     item = channelsList.GetFocusedItem()
                     channelData = channelsData[item]
                     channelId = channelData["id"]
-                    CustomThread(target=self.loadChannel, args=(
+                    CustomThread(target=self.load_channel, args=(
                         channelId, resultsDial)).start()
                 channelsList.Bind(wx.EVT_LIST_ITEM_ACTIVATED,
                                   onChannelSelected)
+                playlists_list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, lambda event: self.on_playlist_selected(
+                    event, resultsDial, playlists_list, playlists_data))
                 resultsLoadMore = wx.Button(
                     resultsDial, label="&Carregar mais")
                 if not "nextPageToken" in searchResults:
@@ -4072,9 +4143,9 @@ class MainWindow(Dialog):
 
         def onSubscriptions(event):
             subs = self.allSubs
-            subsDial = Dialog(self, title="Inscrições")
+            subsDial = Dialog(self, self, title="Inscrições")
             subsClose = wx.Button(subsDial, wx.ID_CANCEL, "Voltar")
-            subsClose.Bind(wx.EVT_BUTTON, onWindowClose)
+            subsClose.Bind(wx.EVT_BUTTON, self.on_window_close)
             subsLabel = wx.StaticText(subsDial, label="&Inscrições")
             subsList = List(subsDial, title="Inscrições")
             subsList.SetFocus()
@@ -4092,7 +4163,7 @@ class MainWindow(Dialog):
                 speak("Carregando canal...")
                 item = subsList.GetFocusedItem()
                 subData = subsData[item]
-                CustomThread(target=self.loadChannel, args=(
+                CustomThread(target=self.load_channel, args=(
                     subData["channelId"], subsDial)).start()
             subsList.Bind(wx.EVT_LIST_ITEM_ACTIVATED, onSubSelected)
             subsDial.Show()
@@ -4114,9 +4185,9 @@ class MainWindow(Dialog):
             videosData = window.notifList.copy()
             videosData.sort(
                 reverse=True, key=lambda element: element["publishedAt"])
-            notifDialog = Dialog(self, title="Notificações")
+            notifDialog = Dialog(self, self, title="Notificações")
             notifClose = wx.Button(notifDialog, wx.ID_CANCEL, "Voltar")
-            notifClose.Bind(wx.EVT_BUTTON, onWindowClose)
+            notifClose.Bind(wx.EVT_BUTTON, self.on_window_close)
             notifLabel = wx.StaticText(notifDialog, label="&Notificações")
             videosList = VideosList(
                 self, notifDialog, title="Notificações", supports_shortcuts=False)
@@ -4125,17 +4196,21 @@ class MainWindow(Dialog):
                 self.addFeedVideo(videosList, videoData)
 
             def onNotifSelected(event):
+                item = videosList.GetFocusedItem()
+                feedData = videosData[item]
+                videoId = feedData["id"]
+
                 if self.video_is_loading:
                     speak("Aguarde. Outro vídeo já está carregando.")
+                    return
+                elif self.current_player_window and self.window.current_video_id == videoId:
+                    self.window.current_player_window.Show()
                     return
                 speak("Carregando vídeo...")
                 self.video_is_loading = True
 
                 def getVideo():
                     yt = build_ytb(creds)
-                    item = videosList.GetFocusedItem()
-                    feedData = videosData[item]
-                    videoId = feedData["id"]
                     videos = yt.videos().list(
                         part="id,snippet,statistics,contentDetails", id=videoId).execute()
                     video = videos["items"][0]
@@ -4148,7 +4223,7 @@ class MainWindow(Dialog):
                 speak("Carregando canal do autor...")
                 feedData = videosList.videoData
                 channelId = feedData["channelId"]
-                CustomThread(target=self.loadChannel, args=(
+                CustomThread(target=self.load_channel, args=(
                     channelId, notifDialog)).start()
             videosList.goToChannel.Bind(wx.EVT_BUTTON, onGoToChannel)
             notifDialog.Bind(
@@ -4175,9 +4250,9 @@ class MainWindow(Dialog):
             def onExploreLoaded(event):
                 categoriesList = event.categories["items"]
                 categoryId = 0
-                exploreDial = Dialog(self, title="Vídeos em alta")
+                exploreDial = Dialog(self, self, title="Vídeos em alta")
                 backButton = wx.Button(exploreDial, wx.ID_CANCEL, "Voltar")
-                backButton.Bind(wx.EVT_BUTTON, onWindowClose)
+                backButton.Bind(wx.EVT_BUTTON, self.on_window_close)
                 trendingLabel = wx.StaticText(
                     exploreDial, label="&Vídeos em alta")
                 videosList = VideosList(
@@ -4194,7 +4269,7 @@ class MainWindow(Dialog):
                     speak("Carregando canal do autor...")
                     videoData = videosList.videoData
                     channelId = videoData["channelId"]
-                    CustomThread(target=self.loadChannel, args=(
+                    CustomThread(target=self.load_channel, args=(
                         channelId, exploreDial)).start()
                 videosList.goToChannel.Bind(wx.EVT_BUTTON, onGoToChannel)
                 categoriesItems = event.categories["items"]
@@ -4273,7 +4348,7 @@ class MainWindow(Dialog):
         self.settingsBtn.SetAccessible(AccessibleLinkButton())
 
         def onSettings(event):
-            settingsDial = Dialog(self, title="Configurações")
+            settingsDial = Dialog(self, self, title="Configurações")
             notifBox = wx.CheckBox(
                 settingsDial, label="Ativar &notificações de novos vídeos (afeta apenas os avisos de notificação, não a lista)")
             if self.getSetting("notifications"):
@@ -4420,10 +4495,10 @@ class MainWindow(Dialog):
                     self.hotkeyChecker.start()
                 with open("blind_tube.ini", "w") as configFile:
                     self.conf.write(configFile)
-                onWindowClose(event)
+                self.on_window_close(event)
             ok.Bind(wx.EVT_BUTTON, onOk)
             cancel = wx.Button(settingsDial, wx.ID_CANCEL, "Cancelar")
-            cancel.Bind(wx.EVT_BUTTON, onWindowClose)
+            cancel.Bind(wx.EVT_BUTTON, self.on_window_close)
             settingsDial.Show()
         self.settingsBtn.Bind(wx.EVT_BUTTON, onSettings)
         self.updateBtn = wx.Button(
@@ -4453,6 +4528,7 @@ class MainWindow(Dialog):
         self.exitButton = wx.Button(self, wx.ID_CANCEL, "Sair")
 
         def onExit(event):
+            self.instance_is_open = False
             if self.isFirstInstance:
                 self.Hide()
             else:

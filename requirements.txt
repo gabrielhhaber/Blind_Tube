@@ -11,14 +11,14 @@ chardet==3.0.4
 charset-normalizer==3.4.1
 colorama==0.4.6
 cryptography==44.0.1
-Cython==3.0.12
+Cython==3.1.2
 decorator==5.2.1
 deep-translator==1.11.4
 defusedxml==0.7.1
 executing==2.2.0
 feedparser==6.0.11
 google-api-core==2.24.1
-google-api-python-client==2.161.0
+google-api-python-client==2.176.0
 google-auth==2.38.0
 google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.1
@@ -54,7 +54,7 @@ pyasn1_modules==0.4.1
 pycparser==2.22
 pycryptodomex==3.23.0
 Pygments==2.19.1
-pyinstaller==6.14.1
+pyinstaller==6.14.2
 pyinstaller-hooks-contrib==2025.5
 pynput==1.7.7
 pyparsing==3.2.1
@@ -86,4 +86,4 @@ wheel==0.45.1
 win10toast-click==0.1.2
 winpaths==0.2
 wxPython==4.2.2
-youtube-transcript-api==0.6.3
+youtube-transcript-api==1.2.1

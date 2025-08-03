@@ -1,26 +1,13 @@
 Dicas de uso para o Blind Tube
 
-Este manual busca fornecer algumas dicas de uso para que você possa aproveitar mais o Blind 
-Tube e os recursos que ele oferece.
-Em qualquer janela do Blind Tube em que você esteja, menos as janelas em que ocorre alguma 
-operação (em que há apenas um botão cancelar), você pode voltar à janela anterior com esc. 
-Para fechar a instância atual completamente (sem abrir a janela em que você estava 
-anteriormente), pressione alt+f4.
+Este manual busca fornecer algumas dicas de uso para que você possa aproveitar mais o Blind Tube e os recursos que ele oferece.
+Em qualquer janela do Blind Tube em que você esteja, menos as janelas em que ocorre alguma operação (em que há apenas um botão cancelar), você pode voltar à janela anterior com esc. 
+Para fechar a instância atual completamente (sem abrir a janela em que você estava anteriormente), pressione alt+f4.
 Para sair apenas do diálogo atual, sem fechar totalmente a instância atual, pressione Esc.
-Você pode abrir uma nova instância do Blind Tube de qualquer lugar onde você estiver, sem 
-precisar estar em nenhuma janela de dentro do Blind Tube. Para isso, pressione as teclas 
-Ctrl+shift+b. Em alguns casos, o Windows pode não mover o foco automaticamente para a 
-nova janela, então o programa avisará que a instância foi carregada através da fala. Nesses 
-casos, você pode procurar a janela com alt+tab e alt+shift+tab (para ir para a próxima janela ou 
-para a janela anterior na lista de janelas do Windows), mantendo sempre a tecla alt 
-pressionada até chegar à janela desejada.
-Ao interagir com as diversas janelas e seções do Blind Tube, a grande maioria dos atalhos será 
-sempre falada quando você navegar pelas opções disponíveis com a tecla tab. Porém, alguns 
-atalhos adicionais não são listados diretamente pelo programa. Segue abaixo uma lista com 
-eles.
+Você pode abrir uma nova instância do Blind Tube de qualquer lugar onde você estiver, sem precisar estar em nenhuma janela de dentro do Blind Tube. Para isso, pressione as teclas Ctrl+shift+b. Em alguns casos, o Windows pode não mover o foco automaticamente para a nova janela, então o programa avisará que a instância foi carregada através da fala. Nesses casos, você pode procurar a janela com alt+tab e alt+shift+tab (para ir para a próxima janela ou para a janela anterior na lista de janelas do Windows), mantendo sempre a tecla alt pressionada até chegar à janela desejada.
+Ao interagir com as diversas janelas e seções do Blind Tube, a grande maioria dos atalhos será sempre falada quando você navegar pelas opções disponíveis com a tecla tab. Porém, alguns atalhos adicionais não são listados diretamente pelo programa. Segue abaixo uma lista com eles.
 
-Atalhos das listas de vídeos (quando dentro de um canal, nos resultados de pesquisa, no menu 
-explorar ou no player. Estes atalhos não funcionam dentro das notificações:
+Atalhos das listas de vídeos (quando dentro de um canal, nos resultados de pesquisa, no menu explorar ou no player. Estes atalhos não funcionam dentro das notificações:
 Enter ou Espaço: abre o vídeo selecionado no player interno do Blind Tube.
 Ctrl+a: anuncia o autor do vídeo (ou nome do canal que o postou)
 Ctrl+u: anuncia a duração total do vídeo
@@ -31,75 +18,51 @@ Ctrl+c: anuncia a quantidade de comentários do vídeo
 Ctrl+t: anuncia o título do vídeo
 Ctrl+shift+t: copia o título do vídeo para a área de transferência
 Ctrl+k: copia o link do vídeo para a área de transferência
-Ctrl+Enter: abre o vídeo selecionado no navegador padrão (útil para lives e estreias, por 
-exemplo, que não são diretamente suportadas pelo Blind Tube).
+Ctrl+Enter: abre o vídeo selecionado no navegador padrão (útil para lives e estreias, por exemplo, que não são diretamente suportadas pelo Blind Tube).
+F6: quando dentro do player ou de uma lista, permite alternar entre as janelas principais e o player.
+Você pode navegar por outros conteúdos normalmente na mesma janela, e o player ainda continuará em execução na mesma instância.
 
 Atalhos do canal (disponíveis dentro de um canal ou no player, mas não em outras listas):
-Ctrl+d: exibe o nome do canal, a quantidade de inscritos e a quantidade de vídeos do mesmo. 
-Semelhante ao que aparece no campo de informações.
+Ctrl+d: exibe o nome do canal, a quantidade de inscritos e a quantidade de vídeos do mesmo. Semelhante ao que aparece no campo de informações.
 Ctrl+y: exibe apenas o título do canal.
 Ctrl+shift+y: copia o título do canal para a área de transferência.
 Ctrl+s: exibe apenas a quantidade de inscritos do canal.
 Ctrl+o: exibe apenas a quantidade de vídeos do canal.
 Ctrl+n: copia o link do canal para a área de transferência.
 Ctrl+x: informa a data em que o canal foi criado.
-Observe que os atalhos foram ajustados para não conflitarem com os atalhos já existentes para 
-os vídeos, como Ctrl+k, Ctrl+l, Ctrl+t etc.
+Observe que os atalhos foram ajustados para não conflitarem com os atalhos já existentes para os vídeos, como Ctrl+k, Ctrl+l, Ctrl+t etc.
 
 Atalhos do player de vídeo:
-Estas teclas não funcionam quando você está posicionado em um campo de edição dentro do 
-player, como o da descrição ou o das informações do vídeo.
+Estas teclas não funcionam quando você está posicionado em um campo de edição dentro do player, como o da descrição ou o das informações do vídeo.
 Setas esquerda e direita: retrocedem/avançam 5 segundos, respectivamente
-PageUp e PageDown: no controle deslizante de posição, recuam e avançam um minuto, 
-respectivamente.
-Home e end: no controle deslizante de posição, tentam ir para o início e o fim do vídeo, 
-respectivamente. No caso da tecla end, o programa tentará avançar à medida que o vídeo 
-carrega e, caso após 8 segundos o vídeo ainda não tenha chegado ao final, ele avisará para que 
-você pressione end novamente, até chegar à posição desejada.
+PageUp e PageDown: no controle deslizante de posição, recuam e avançam um minuto, respectivamente.
+Home e end: no controle deslizante de posição, tentam ir para o início e o fim do vídeo, respectivamente. No caso da tecla end, o programa tentará avançar à medida que o vídeo carrega e, caso após 8 segundos o vídeo ainda não tenha chegado ao final, ele avisará para que você pressione end novamente, até chegar à posição desejada.
 Setas cima e baixo: aumentam e diminuem o volume em 2%, respectivamente. 
 Pode ser mantido pressionado para aumentar ou diminuir rapidamente o volume.
 O programa também anuncia quando o volume 100% é ultrapassado
 Quando no controle deslizante de posição, retrocedem e avançam 5 
 segundos, respectivamente.
 Espaço: pausa/retoma o vídeo, ou repete o vídeo caso ele tenha terminado.
-Ctrl+espaço: quando dentro do player de vídeo, ativa um botão ou caixa de seleção (como as 
-caixas de marcar como gostei e não gostei). Isso ocorre para não sobrepor a função principal da 
-tecla espaço no player, que é pausar/reproduzir o vídeo.
-Ctrl+seta para cima e Ctrl+seta para baixo: aumentam e diminuem a velocidade do vídeo, 
-respectivamente.
-Ctrl+seta para a esquerda e Ctrl+seta para a direita: em uma playlist, passam para o vídeo 
-anterior e para o próximo vídeo, respectivamente.
-Ctrl+s: informa a posição atual do vídeo e a duração total, semelhante ao que aparece no 
-controle deslizante de posição.
+Ctrl+espaço: quando dentro do player de vídeo, ativa um botão ou caixa de seleção (como as caixas de marcar como gostei e não gostei). Isso ocorre para não sobrepor a função principal da tecla espaço no player, que é pausar/reproduzir o vídeo.
+Ctrl+seta para cima e Ctrl+seta para baixo: aumentam e diminuem a velocidade do vídeo, respectivamente.
+Ctrl+seta para a esquerda e Ctrl+seta para a direita: em uma playlist, passam para o vídeo anterior e para o próximo vídeo, respectivamente.
+Ctrl+s: informa a posição atual do vídeo e a duração total, semelhante ao que aparece no controle deslizante de posição.
 Ctrl+v: informa o volume atual do vídeo.
 Ctrl+shift+v: informa a velocidade atual do vídeo.
 
 Atalhos da seção de comentários (grande parte também se aplica às 
 respostas de comentários):
 Ctrl+a: anuncia o autor do comentário (ou quem o postou).
-Nota: por padrão, a opção de mostrar a versão encurtada dos identificadores virá ativada no 
-programa. Isso significa que os nomes mostrados na leitura dos comentários com as setas são 
-diferentes dos identificadores reais, usados pelo YouTube. Esses identificadores são encurtados 
-para facilitar a leitura dos comentários com os leitores de tela, pois os originais possuem 
-muitos números que acabam atrasando a leitura.
+Nota: por padrão, a opção de mostrar a versão encurtada dos identificadores virá ativada no programa. Isso significa que os nomes mostrados na leitura dos comentários com as setas são diferentes dos identificadores reais, usados pelo YouTube. Esses identificadores são encurtados para facilitar a leitura dos comentários com os leitores de tela, pois os originais possuem muitos números que acabam atrasando a leitura.
 Ctrl+l: anuncia a quantidade de likes (ou marcações gostei) do comentário.
 Ctrl+t: anuncia o texto completo do comentário.
-Ctrl+shift+t: traduz o comentário ou resposta usando o mecanismo do Google Tradutor. Após a 
-conclusão da tradução, fala o texto traduzido.
+Ctrl+shift+t: traduz o comentário ou resposta usando o mecanismo do Google Tradutor. Após a conclusão da tradução, fala o texto traduzido.
 Ctrl+p: anuncia a data e hora de publicação do comentário.
-Ctrl+r: anuncia a quantidade de respostas do comentário (não aplicável ao diálogo de 
-respostas).
-Nota: devido a limitações na API do próprio YouTube, no momento, não é possível dar like em 
-um comentário pelo Blind Tube. Essa função será implementada no Blind Tube caso seja 
-possível em algum momento.
+Ctrl+r: anuncia a quantidade de respostas do comentário (não aplicável ao diálogo de respostas).
+Nota: devido a limitações na API do próprio YouTube, no momento, não é possível dar like em um comentário pelo Blind Tube. Essa função será implementada no Blind Tube caso seja possível em algum momento.
 
 Outros atalhos:
-Enter: quando focado em um campo de edição, caso a linha atual contenha um link em seu 
-texto, abre o link no navegador padrão.
+Enter: quando focado em um campo de edição, caso a linha atual contenha um link em seu texto, abre o link no navegador padrão.
 
 Notas importantes:
-1.	No momento, o player interno do Blind Tube não é compatível com a reprodução de 
-estreias ou lives em andamento. Para acessar uma estreia ou live, você precisará copiar 
-o link do vídeo com ctrl+k e, então, iniciá-lo em um player de sua preferência, como o 
-MPC-HC ou o VLC, ou utilizar as teclas Ctrl+Enter para abrir o vídeo no navegador 
-padrão.
+1. No momento, o player interno do Blind Tube não é compatível com a reprodução de estreias ou lives em andamento. Para acessar uma estreia ou live, você precisará copiar o link do vídeo com ctrl+k e, então, iniciá-lo em um player de sua preferência, como o MPC-HC ou o VLC, ou utilizar as teclas Ctrl+Enter para abrir o vídeo no navegador padrão.
