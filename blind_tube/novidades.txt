@@ -1,5 +1,30 @@
 Novidades das atualizações do Blind Tube
 
+Versão 24/08/2025:
+Esta é uma atualização ainda em desenvolvimento, lançada antes do previsto devido a um 
+problema grave envolvendo o Yt-dlp que impedia o funcionamento do programa.
+No momento, o uso de cookies está suspenso. Foi identificado que, após mudanças feitas pela 
+equipe do YouTube, o YT-DLP tem apresentado erros ao enviar pedidos com cookies. Até que 
+isso seja oficialmente resolvido, não será possível abrir vídeos com restrição de idade pelo 
+Blind Tube.
+Nota: esta atualização pode conter bugs. Devido às mudanças recentes do YouTube e à parada 
+completa do programa, foi necessário interromper o desenvolvimento de algumas funções 
+para lançar a atualização.
+Agora, a abertura de links com navegador dentro das notificações deve funcionar 
+corretamente.
+Corrigido um problema em que diálogos de erro poderiam causar comportamentos 
+inesperados, levando as janelas do programa a não fecharem, travarem ou aparecerem em 
+loop.
+Agora, o Blind Tube não deve mais apresentar um erro ao iniciar com o Windows sem internet. 
+Ao abrir, o programa só continuará a inicialização quando identificar que você está conectado à 
+internet.
+Corrigido um problema em que, ao usar o botão de ir ao canal do autor por dentro do player, a 
+janela do Blind Tube se recusava a fechar.
+Note que, se você abrir dois players ao mesmo tempo (como ao entrar em outro canal de 
+dentro de um player já aberto), o uso do f6 não funcionará corretamente devido às janelas 
+sobrepostas. Se você usa frequentemente o f6, deve pressionar esc para fechar o player 
+primeiro antes de abrir um canal.
+
 Versão 02/08/2025:
 Agora, um novo recurso de painéis está disponível no programa. Você pode facilmente navegar 
 entre as janelas principais e o player usando a tecla f6.

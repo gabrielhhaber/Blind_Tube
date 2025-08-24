@@ -81,11 +81,12 @@ class CustomThread(Thread):
 
 
 class Dialog(wx.Dialog):
-    def __init__(self, window, prevWindow, title, closePrev=True, assign_player_input=True):
+    def __init__(self, window, prevWindow, title, closePrev=True, assign_player_input=True, is_player=False):
         self.window = window
         self.prevWindow = prevWindow
         self.closePrev = closePrev
         self.assign_player_input = assign_player_input
+        self.is_player = is_player
         if self.closePrev:
             super().__init__(None, title=title, style=wx.DIALOG_NO_PARENT)
         else:
@@ -100,13 +101,16 @@ class Dialog(wx.Dialog):
                     self.prevWindow.Hide()
             except Exception as e:
                 pass
-        if self.assign_player_input:
+        if self.assign_player_input: #Evita que janelas sobrepostas ao player utilizem o comportamento do f6
             self.window.current_player_parent = self
         super().Show()
 
     def on_player_parent_keys(self, event):
         key_code = event.GetKeyCode()
         if key_code == wx.WXK_F6 and self.window.current_player_window:
+            if not self.window.current_player_parent:
+                return #Evita o funcionamento do f6 em diálogos que não deveriam ativá-lo
+
             self.Hide()
             self.window.current_player_window.Show()
         else:
@@ -178,13 +182,8 @@ class VideosList(List):
             speak("Carregando vídeo...")
             self.window.video_is_loading = True
             currentWindow = videosList.GetParent()
-            try:
-                CustomThread(target=self.window.playVideo, args=(currentWindow, self.videoData, self.videosData,
-                                                                 self.isPlaylist, False, self.playlistData, self.playlistItems)).start()
-            except Exception as e:
-                wx.MessageBox(
-                    f"Não foi possível carregar o vídeo solicitado. Isso pode ocorrer se o componente YT-DLP não estiver atualizado ou se o vídeo for uma live ou estreia. Tente abrir este vídeo no navegador padrão pressionando as teclas CTRL+Enter. {traceback.format_exc()}", "Erro ao carregar o vídeo", wx.OK | wx.ICON_ERROR, currentWindow)
-                return
+            CustomThread(target=self.window.playVideo, args=(currentWindow, self.videoData, self.videosData,
+                                                                self.isPlaylist, False, self.playlistData, self.playlistItems)).start()
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, lambda event: onVideoSelect(
             event, self, self.videoData, self.videosData, self.isPlaylist))
         if self.supports_shortcuts:
@@ -807,6 +806,12 @@ class VideoStream(Tempo):
         self.sliderString = ""
         self.isLoaded = True
 
+def is_connected(url, timeout):
+    try:
+        requests.get(url, timeout=timeout)
+        return True
+    except:
+        return False
 
 def login():
     creds = None
@@ -901,7 +906,7 @@ class MainWindow(Dialog):
         self.yttransc = YouTubeTranscriptApi()
         self.transcript = []
         self.currentLanguageCode = 0
-        self.currentVersion = "02/08/2025"
+        self.currentVersion = "24/08/2025"
         self.instanceChecker = wx.SingleInstanceChecker(self.appName)
         self.instanceData = instanceData
         if self.instanceData:
@@ -983,6 +988,7 @@ class MainWindow(Dialog):
     def checkOldSearch(self):
         if os.path.exists("search_history.txt"):
             shutil.move("search_history.txt", "data/search_history.txt")
+
 
     def checkNotifications(self):
         def checkVideos():
@@ -1066,6 +1072,8 @@ class MainWindow(Dialog):
             try:
                 if not prevObject.IsShown():
                     prevObject.Show()
+                if isinstance(prevObject, Dialog) and prevObject.is_player:
+                    self.current_player_window = prevObject
             except Exception as e:
                 pass
         else:
@@ -1359,7 +1367,7 @@ class MainWindow(Dialog):
 
     def get_stream_url(self, video_url):
         cmd = [
-            "yt-dlp", "-g", "-f", "mp4", "--cookies", "cookies.txt",
+            "yt-dlp", "-g", "-f", "b[ext=mp4]",
             f'{video_url}'
         ]
 
@@ -1375,8 +1383,6 @@ class MainWindow(Dialog):
         for output in result.stdout.split("\n"):
             if ytb_regex.match(output):
                 return ytb_regex.match(output).group()
-        wx.CallAfter(
-            wx.MessageBox, f"Não foi possível carregar o vídeo solicitado. Ocorreu um problema com a ferramenta YT-DLP: nenhuma saída válida retornada. {result.stdout}", "Erro ao carregar o vídeo", wx.OK | wx.ICON_ERROR, self)
 
     def on_download(self, event, videoTitle, video_id, currentWindow, listToFocus=None):
         videoTitle = fixChars(videoTitle)
@@ -1453,7 +1459,7 @@ class MainWindow(Dialog):
 
     def start_ytdl_download(self, url, file_path, format, video_data, download_dial, downloading_dial, download_progress, single=True, list_to_focus=None):
         cmd = [
-            "yt-dlp", "-f", "mp4", "--cookies", "cookies.txt", "--no-mtime", "--windows-filenames",
+            "yt-dlp", "-f", "b[ext=mp4]", "--no-mtime", "--windows-filenames",
             "-o", file_path, url
         ]
 
@@ -1831,7 +1837,7 @@ class MainWindow(Dialog):
             windowTitle = videoData["videoTitle"]+" - Blind Tube"
             videoEnded = False
             playerDial = Dialog(self, currentWindow,
-                                title=windowTitle, assign_player_input=False)
+                                title=windowTitle, assign_player_input=False, is_player=True)
             self.current_player_window = playerDial
             self.current_video_id = videoData["id"]
             playerDial.Bind(wx.EVT_CHAR_HOOK,
@@ -3082,8 +3088,8 @@ class MainWindow(Dialog):
                     self.shouldPlayNext = False
                 if self.current_player_window:
                     self.current_player_window.Destroy()
-                if self.current_player_parent and not wx.GetKeyState(wx.WXK_ALT):
-                    self.current_player_parent.Show()
+                if currentWindow and not wx.GetKeyState(wx.WXK_ALT):
+                    currentWindow.Show()
                     if isAuto:
                         wx.PostEvent(currentWindow, VideoCloseEvent(
                             videoPos=videoPosOnPlaylist))
@@ -3917,6 +3923,7 @@ class MainWindow(Dialog):
             "videoTitle": entry["title"],
             "channelTitle": entry["author"],
             "id": entry["yt_videoid"],
+            "url": baseUrl + entry["yt_videoid"],
             "channelId": entry["yt_channelid"],
             "publishedAt": publishedAt,
         }
@@ -4227,7 +4234,7 @@ class MainWindow(Dialog):
                     channelId, notifDialog)).start()
             videosList.goToChannel.Bind(wx.EVT_BUTTON, onGoToChannel)
             notifDialog.Bind(
-                wx.EVT_CHAR_HOOK, lambda event: self.on_notif_char(event, videoData))
+                wx.EVT_CHAR_HOOK, lambda event: self.on_notif_char(event, videosList.videoData))
             self.playSound("notifs")
             notifDialog.Show()
         notifications.Bind(wx.EVT_BUTTON, onNotifications)
@@ -4554,6 +4561,8 @@ class MainWindow(Dialog):
 
 sys.excepthook = excHandler
 threading.excepthook = threadExcHandler
+while not is_connected("https://www.google.com", 10):
+    time.sleep(0.05)
 creds = login()
 yt = build_ytb(creds)
 logedIn = True
