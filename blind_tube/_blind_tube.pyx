@@ -906,7 +906,7 @@ class MainWindow(Dialog):
         self.yttransc = YouTubeTranscriptApi()
         self.transcript = []
         self.currentLanguageCode = 0
-        self.currentVersion = "24/08/2025"
+        self.currentVersion = "03/09/2025"
         self.instanceChecker = wx.SingleInstanceChecker(self.appName)
         self.instanceData = instanceData
         if self.instanceData:
@@ -1367,7 +1367,7 @@ class MainWindow(Dialog):
 
     def get_stream_url(self, video_url):
         cmd = [
-            "yt-dlp", "-g", "-f", "b[ext=mp4]",
+            "yt-dlp", "-g", "-f", "b[ext=mp4]", "--cookies", "cookies.txt",
             f'{video_url}'
         ]
 
@@ -1459,7 +1459,7 @@ class MainWindow(Dialog):
 
     def start_ytdl_download(self, url, file_path, format, video_data, download_dial, downloading_dial, download_progress, single=True, list_to_focus=None):
         cmd = [
-            "yt-dlp", "-f", "b[ext=mp4]", "--no-mtime", "--windows-filenames",
+            "yt-dlp", "-f", "b[ext=mp4]", "--cookies", "cookies.txt", "--no-mtime", "--windows-filenames",
             "-o", file_path, url
         ]
 

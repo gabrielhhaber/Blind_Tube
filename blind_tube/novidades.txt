@@ -1,5 +1,10 @@
 Novidades das atualizações do Blind Tube
 
+Versão 03/09/2025:
+Após as correções de bugs, o uso de cookies no download e na reprodução de vídeos foi 
+restabelecido. Assim, será possível assistir novamente a vídeos com restrição de idade.
+O carregamento dos vídeos também está mais rápido após as últimas atualizações.
+
 Versão 24/08/2025:
 Esta é uma atualização ainda em desenvolvimento, lançada antes do previsto devido a um 
 problema grave envolvendo o Yt-dlp que impedia o funcionamento do programa.
