@@ -48,7 +48,7 @@ translator = GoogleTranslator(source="auto", target="pt")
 os.chdir(os.path.dirname(sys.argv[0]) if os.path.dirname(
     sys.argv[0]) else os.getcwd())
 try:
-    tokenKey = b"TOKEN_KEY_HERE"
+    tokenKey = b"LpV6PLj8zQVa0GMNu_i8GQA346Ku4zkzPZK1EqrLpQw="
 except Exception as e:
     wx.MessageBox("Não foi possível encontrar a chave de criptografia dos tokens de acesso. Se você está executando este programa através do código-fonte, gere uma nova chave ou solicite uma ao desenvolvedor.",
                   "Chave não encontrada", wx.OK | wx.ICON_ERROR)
@@ -906,7 +906,7 @@ class MainWindow(Dialog):
         self.yttransc = YouTubeTranscriptApi()
         self.transcript = []
         self.currentLanguageCode = 0
-        self.currentVersion = "27/09/2025"
+        self.currentVersion = "12/01/2026"
         self.instanceChecker = wx.SingleInstanceChecker(self.appName)
         self.instanceData = instanceData
         if self.instanceData:
@@ -1367,7 +1367,7 @@ class MainWindow(Dialog):
 
     def get_stream_url(self, video_url):
         cmd = [
-            "yt-dlp", "-g", "-f", "18", "--cookies", "cookies.txt",
+            "yt-dlp", "-g", "-f", "18", "--cookies", "cookies.txt", "-R", "5",
             f'{video_url}'
         ]
 
@@ -1797,17 +1797,15 @@ class MainWindow(Dialog):
         playlistDial.Show()
 
     def playVideo(self, currentWindow, videoData, videosData=None, isPlaylist=False, isAuto=False, playlistData=None, playlistItems=None, oldWindow=None, oldStream=None):
+        self.shouldPlayNext = True
+        yt = build_ytb(creds)
+        stream_url = self.get_stream_url(videoData["url"])
         try:
-            self.shouldPlayNext = True
-            yt = build_ytb(creds)
-            stream_url = self.get_stream_url(videoData["url"])
             videoStream = VideoStream(stream_url, decode=True)
         except Exception as e:
             wx.MessageBox(
                 f"Não foi possível carregar o vídeo solicitado. Isso pode ocorrer se o componente YT-DLP não estiver atualizado ou se o vídeo for uma live ou estreia. Tente abrir este vídeo no navegador padrão pressionando as teclas CTRL+Enter. {traceback.format_exc()}", "Erro ao carregar o vídeo", wx.OK | wx.ICON_ERROR, currentWindow)
             return
-        finally:
-            self.video_is_loading = False
 
         videoStream.sliderString = "O vídeo está carregando..."
         rattingResponse = yt.videos().getRating(id=videoData["id"]).execute()
@@ -3174,6 +3172,7 @@ class MainWindow(Dialog):
                 languageDict.values()).index(self.currentLanguageCode)]
             changeTranscript.SetLabel(
                 "Idioma para buscar a transcri&ção: " + languageName)
+            self.video_is_loading = False
             playerDial.Show()
             if isAuto:
                 oldWindow.Destroy()
@@ -4030,12 +4029,22 @@ class MainWindow(Dialog):
                 channelIds = ",".join(channelIds)
                 videoIds = ",".join(videoIds)
                 playlist_ids = ",".join(playlist_ids)
-                channels = yt.channels().list(part="id,snippet,statistics",
-                                              id=channelIds, maxResults=50).execute()
+                if channelIds:
+                    channels = yt.channels().list(part="id,snippet,statistics",
+                                                id=channelIds, maxResults=50).execute()
+                else:
+                    channels = {
+                        "items": []
+                    }
                 videos = yt.videos().list(
                     part="id,snippet,statistics,contentDetails", id=videoIds).execute()
-                playlists = yt.playlists().list(part="id,snippet,contentDetails",
-                                                id=playlist_ids, maxResults=50).execute()
+                if playlist_ids:
+                    playlists = yt.playlists().list(part="id,snippet,contentDetails",
+                                                    id=playlist_ids, maxResults=50).execute()
+                else:
+                    playlists = {
+                        "items": []
+                    }
                 self.Bind(EVT_LOAD, onResultsLoaded)
                 wx.PostEvent(self, LoadEvent(
                     searchResults=searchResults, videos=videos, channels=channels, playlists=playlists))
@@ -4114,7 +4123,12 @@ class MainWindow(Dialog):
                                 videoIds.append(result["id"]["videoId"])
                         channelIds = ",".join(channelIds)
                         videoIds = ",".join(videoIds)
-                        channels = yt.channels().list(part="id,snippet,statistics", id=channelIds).execute()
+                        if channelIds:
+                            channels = yt.channels().list(part="id,snippet,statistics", id=channelIds).execute()
+                        else:
+                            channels = {
+                                "items": []
+                            }
                         videos = yt.videos().list(
                             part="id,snippet,statistics,contentDetails", id=videoIds).execute()
                         resultsDial.Bind(EVT_LOAD, onMoreResultsLoaded)
@@ -4553,7 +4567,7 @@ class MainWindow(Dialog):
 
     def on_about(self, event):
         wx.MessageBox(f"""
-                      Desenvolvido originalmente por: Gabriel Haberkamp - Blind Center.
+                      Desenvolvido originalmente por: Gabriel Haberkamp - Projeto Blind Center.
                       Versão atual: {self.currentVersion}.
                       licenciado sob a GNU Lesser General Public Licence V3 (GPLV3).
                       """, "Sobre o Blind Tube", wx.OK | wx.ICON_INFORMATION, self)

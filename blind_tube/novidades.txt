@@ -1,10 +1,21 @@
 Novidades das atualizações do Blind Tube
 
-Versão 27/09/2025:
-Corrigido um problema em que era possível apenas baixar vídeos, mas não reproduzir.
-Recentemente, o YouTube passou por uma mudança que está impedindo o Yt-dlp de extrair os melhores formatos do servidor, mesmo atualizado. Na versão atual da ferramenta, há um erro ainda não corrigido em que certos formatos são rotulados como disponíveis, mas, ao tentar extrair o link de streaming, não é possível obtê-lo.
-No momento, o Blind Tube foi configurado para usar especificamente o formato 18, que ainda está disponível, possui carregamento rápido e boa qualidade de áudio.
-Caso o problema seja corrigido e o YouTube volte a disponibilizar os antigos formatos, o programa pode ser atualizado para buscar novamente os formatos de melhor qualidade.
+Versão 12/01/2026:
+Esta atualização tem o objetivo de corrigir bugs e melhorar a estabilidade, abrindo caminho 
+para novas funcionalidades futuras. Vale lembrar que, embora o programa não receba novos 
+recursos nesta atualização, ainda é mantido ativamente, e a Blind Center também tem focado 
+em novos projetos, o que pode atrasar o desenvolvimento ativo.
+Corrigido um problema em que, após uma mudança interna na API do YouTube, a função de 
+pesquisa retornava vários erros.
+Agora, o Blind Tube inclui o motor JavaScript Deno dentro do pacote. Isso porque o YT-DLP está 
+mudando a maneira como obtém os vídeos do YouTube e, embora não haja impacto imediato, 
+não implementá-lo poderia causar a parada do funcionamento no futuro.
+Corrigido um problema em que podiam aparecer duas janelas de erro, mesmo ao tentar 
+carregar um único vídeo. Isso fazia o programa travar ou não responder mais aos comandos.
+Corrigido um pequeno bug em que, se você tentasse carregar outro vídeo enquanto o player 
+estava sendo aberto, o programa poderia permitir, causando erro na instância.
+Adicionadas algumas informações extras às dicas de uso, incluindo um link para o site oficial e 
+para o repositório do programa no GitHub.
 
 Versão 03/09/2025:
 Após as correções de bugs, o uso de cookies no download e na reprodução de vídeos foi 
